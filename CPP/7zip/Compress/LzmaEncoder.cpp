@@ -6,6 +6,7 @@
 
 #include "../Common/CWrappers.h"
 #include "../Common/StreamUtils.h"
+#include "../../Common/StringToInt.h"
 
 #include "LzmaEncoder.h"
 
@@ -50,6 +51,19 @@ static int ParseMatchFinder(const wchar_t *s, int *btMode, int *numHashBytes)
     return 1;
   }
 
+  if (c == L'R')
+  {
+      if (GetUpperChar(*s++) != L'C')
+          return 0;
+      int numHashBytesLoc = (int)(*s++ - L'0');
+      if (numHashBytesLoc < 0 || numHashBytesLoc > 1)
+          return 0;
+      if (*s != 0)
+          return 0;
+      *btMode = 2;
+      *numHashBytes = numHashBytesLoc;
+      return 1;
+  }
   if (c != L'B')
     return 0;
   if (GetUpperChar(*s++) != L'T')
@@ -123,6 +137,8 @@ STDMETHODIMP CEncoder::SetCoderProperties(const PROPID *propIDs,
         if (prop.vt != VT_BOOL) return E_INVALIDARG; props.writeEndMark = (prop.boolVal != VARIANT_FALSE); break;
       default:
         RINOK(SetLzmaProp(propID, prop, props));
+        if (props.btMode > 1)
+            return E_INVALIDARG;
     }
   }
   return SResToHRESULT(LzmaEnc_SetProps(_encoder, &props));

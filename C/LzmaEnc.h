@@ -21,8 +21,8 @@ typedef struct _CLzmaEncProps
   int pb;          /* 0 <= pb <= 4, default = 2 */
   int algo;        /* 0 - fast, 1 - normal, default = 1 */
   int fb;          /* 5 <= fb <= 273, default = 32 */
-  int btMode;      /* 0 - hashChain Mode, 1 - binTree mode - normal, default = 1 */
-  int numHashBytes; /* 2, 3 or 4, default = 4 */
+  int btMode;      /* 0 - hashChain Mode, 1 - binTree mode - normal, 2 - radix mode, default = 2 */
+  int numHashBytes; /* 2, 3 or 4, default = 4; radix mode 6 - 254, default = 40 */
   UInt32 mc;       /* 1 <= mc <= (1 << 30), default = 32 */
   unsigned writeEndMark;  /* 0 - do not write EOPM, 1 - write EOPM, default = 0 */
   int numThreads;  /* 1 or 2, default = 2 */

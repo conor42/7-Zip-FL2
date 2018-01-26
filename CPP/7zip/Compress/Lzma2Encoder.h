@@ -4,6 +4,7 @@
 #define __LZMA2_ENCODER_H
 
 #include "../../../C/Lzma2Enc.h"
+#include "../../../C/fast-lzma2.h"
 
 #include "../../Common/MyCom.h"
 
@@ -20,6 +21,15 @@ class CEncoder:
   public CMyUnknownImp
 {
   CLzma2EncHandle _encoder;
+  FL2_CCtx* _fl2encoder;
+  BYTE *inBuffer;
+  size_t dictAlloc;
+  UInt64 reduceSize;
+  UInt32 dictSize;
+  unsigned fl2strategy;
+
+  HRESULT FL2Code(ISequentialInStream *inStream, ISequentialOutStream *outStream,
+      const UInt64 *inSize, const UInt64 *outSize, ICompressProgressInfo *progress);
 public:
   MY_UNKNOWN_IMP4(
       ICompressCoder,
