@@ -1110,6 +1110,8 @@ void CCompressDialog::SetMethod(int keepMethodId)
   {
     const NCompression::CFormatOptions &fo = m_RegistryInfo.Formats[index];
     defaultMethod = fo.Method;
+    if(fo.Options.Find(L"mf=RMF") >= 0)
+      defaultMethod = L"Fast LZMA2";
   }
   bool isSfx = IsSFX();
   bool weUseSameMethod = false;
@@ -1919,18 +1921,13 @@ void CCompressDialog::SetParams()
     UString Options = fo.Options;
     UString options = fo.Options;
     options.MakeLower_Ascii();
-    int len = 6;
-    int i = options.Find(L"mf=rc0");
-    if (i < 0) {
-      i = options.Find(L"mfrc0");
-      --len;
-    }
+    int i = options.Find(L"mf=rmf");
     if (i >= 0 && GetMethodID() != kFastLZMA2) {
-      Options.Delete(i, len);
+      Options.Delete(i, 6);
     }
     else if (i < 0 && GetMethodID() == kFastLZMA2) {
       Options.Add_Space_if_NotEmpty();
-      Options += L"mf=RC0";
+      Options += L"mf=RMF";
     }
     m_Params.SetText(Options);
   }

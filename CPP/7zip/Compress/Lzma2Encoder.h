@@ -26,7 +26,6 @@ class CEncoder:
   size_t dictAlloc;
   UInt64 reduceSize;
   UInt32 dictSize;
-  unsigned fl2strategy;
 
   HRESULT FL2Code(ISequentialInStream *inStream, ISequentialOutStream *outStream,
       const UInt64 *inSize, const UInt64 *outSize, ICompressProgressInfo *progress);

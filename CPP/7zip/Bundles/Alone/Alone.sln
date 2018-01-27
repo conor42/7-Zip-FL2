@@ -7,28 +7,36 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Alone", "Alone.vcxproj", "{
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Win32 = Debug|Win32
 		Debug|x64 = Debug|x64
 		Debug|x86 = Debug|x86
+		DebugU|Win32 = DebugU|Win32
 		DebugU|x64 = DebugU|x64
 		DebugU|x86 = DebugU|x86
+		Release|Win32 = Release|Win32
 		Release|x64 = Release|x64
 		Release|x86 = Release|x86
+		ReleaseU|Win32 = ReleaseU|Win32
 		ReleaseU|x64 = ReleaseU|x64
 		ReleaseU|x86 = ReleaseU|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{372A4DB5-7C72-4AFA-892A-13EA32E43B68}.Debug|Win32.ActiveCfg = Debug|Win32
 		{372A4DB5-7C72-4AFA-892A-13EA32E43B68}.Debug|x64.ActiveCfg = Debug|x64
 		{372A4DB5-7C72-4AFA-892A-13EA32E43B68}.Debug|x64.Build.0 = Debug|x64
 		{372A4DB5-7C72-4AFA-892A-13EA32E43B68}.Debug|x86.ActiveCfg = Debug|Win32
 		{372A4DB5-7C72-4AFA-892A-13EA32E43B68}.Debug|x86.Build.0 = Debug|Win32
+		{372A4DB5-7C72-4AFA-892A-13EA32E43B68}.DebugU|Win32.ActiveCfg = DebugU|Win32
 		{372A4DB5-7C72-4AFA-892A-13EA32E43B68}.DebugU|x64.ActiveCfg = DebugU|x64
 		{372A4DB5-7C72-4AFA-892A-13EA32E43B68}.DebugU|x64.Build.0 = DebugU|x64
 		{372A4DB5-7C72-4AFA-892A-13EA32E43B68}.DebugU|x86.ActiveCfg = DebugU|Win32
 		{372A4DB5-7C72-4AFA-892A-13EA32E43B68}.DebugU|x86.Build.0 = DebugU|Win32
+		{372A4DB5-7C72-4AFA-892A-13EA32E43B68}.Release|Win32.ActiveCfg = Release|Win32
 		{372A4DB5-7C72-4AFA-892A-13EA32E43B68}.Release|x64.ActiveCfg = Release|x64
 		{372A4DB5-7C72-4AFA-892A-13EA32E43B68}.Release|x64.Build.0 = Release|x64
 		{372A4DB5-7C72-4AFA-892A-13EA32E43B68}.Release|x86.ActiveCfg = Release|Win32
 		{372A4DB5-7C72-4AFA-892A-13EA32E43B68}.Release|x86.Build.0 = Release|Win32
+		{372A4DB5-7C72-4AFA-892A-13EA32E43B68}.ReleaseU|Win32.ActiveCfg = ReleaseU|Win32
 		{372A4DB5-7C72-4AFA-892A-13EA32E43B68}.ReleaseU|x64.ActiveCfg = ReleaseU|x64
 		{372A4DB5-7C72-4AFA-892A-13EA32E43B68}.ReleaseU|x64.Build.0 = ReleaseU|x64
 		{372A4DB5-7C72-4AFA-892A-13EA32E43B68}.ReleaseU|x86.ActiveCfg = ReleaseU|Win32

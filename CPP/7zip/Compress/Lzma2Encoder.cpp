@@ -28,7 +28,6 @@ CEncoder::CEncoder()
   inBuffer = NULL;
   dictAlloc = 0;
   reduceSize = 0;
-  fl2strategy = 2;
 }
 
 CEncoder::~CEncoder()
@@ -90,9 +89,9 @@ STDMETHODIMP CEncoder::SetCoderProperties(const PROPID *propIDs,
       while (((UInt32)1 << dictLog) < dictSize)
           ++dictLog;
       FL2_CCtx_setParameter(_fl2encoder, FL2_p_dictionaryLog, dictLog);
-      fl2strategy = lzma2Props.lzmaProps.algo > 0 + (lzma2Props.lzmaProps.algo > 0 && lzma2Props.lzmaProps.numHashBytes);
-      if (lzma2Props.lzmaProps.algo >= 0) /* todo: support for algo == 2 */
-          FL2_CCtx_setParameter(_fl2encoder, FL2_p_strategy, fl2strategy);
+      if (lzma2Props.lzmaProps.algo >= 0) {
+        FL2_CCtx_setParameter(_fl2encoder, FL2_p_strategy, (unsigned)lzma2Props.lzmaProps.algo);
+      }
       if (lzma2Props.lzmaProps.fb > 0)
           FL2_CCtx_setParameter(_fl2encoder, FL2_p_fastLength, lzma2Props.lzmaProps.fb);
       if (lzma2Props.lzmaProps.mc) {

@@ -53,15 +53,12 @@ static int ParseMatchFinder(const wchar_t *s, int *btMode, int *numHashBytes)
 
   if (c == L'R')
   {
-      if (GetUpperChar(*s++) != L'C')
+      if (GetUpperChar(s[0]) != L'M' || GetUpperChar(s[1]) != L'F')
           return 0;
-      int numHashBytesLoc = (int)(*s++ - L'0');
-      if (numHashBytesLoc < 0 || numHashBytesLoc > 1)
-          return 0;
-      if (*s != 0)
+      if (s[2] != 0)
           return 0;
       *btMode = 2;
-      *numHashBytes = numHashBytesLoc;
+      *numHashBytes = 0;
       return 1;
   }
   if (c != L'B')
