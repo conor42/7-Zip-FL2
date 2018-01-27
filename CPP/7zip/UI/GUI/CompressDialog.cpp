@@ -106,6 +106,7 @@ enum EMethodID
   kCopy,
   kLZMA,
   kLZMA2,
+  kFastLZMA2,
   kPPMd,
   kBZip2,
   kDeflate,
@@ -118,6 +119,7 @@ static LPCSTR const kMethodsNames[] =
     "Copy"
   , "LZMA"
   , "LZMA2"
+  , "LZMA2"
   , "PPMd"
   , "BZip2"
   , "Deflate"
@@ -127,6 +129,7 @@ static LPCSTR const kMethodsNames[] =
 
 static const EMethodID g_7zMethods[] =
 {
+  kFastLZMA2,
   kLZMA2,
   kLZMA,
   kPPMd,
@@ -138,6 +141,7 @@ static const EMethodID g_7zSfxMethods[] =
   kCopy,
   kLZMA,
   kLZMA2,
+  kFastLZMA2,
   kPPMd
 };
 
@@ -777,7 +781,7 @@ void CCompressDialog::OnOK()
   }
 
   m_Params.GetText(Info.Options);
-  
+
   UString volumeString;
   m_Volume.GetText(volumeString);
   volumeString.Trim();
@@ -896,6 +900,7 @@ bool CCompressDialog::OnCommand(int code, int itemID, LPARAM lParam)
         SetOrder();
         SetSolidBlockSize();
         SetNumThreads();
+        SetParams();
         CheckSFXNameChange();
         SetMemoryUsage();
         return true;
@@ -1115,7 +1120,7 @@ void CCompressDialog::SetMethod(int keepMethodId)
     if (isSfx)
       if (!IsMethodSupportedBySfx(methodID))
         continue;
-    const char *method = kMethodsNames[methodID];
+    const char *method = (methodID == kFastLZMA2) ? "Fast LZMA2" : kMethodsNames[methodID];
     int itemIndex = (int)ComboBox_AddStringAscii(m_Method, method);
     m_Method.SetItemData(itemIndex, methodID);
     if (keepMethodId == methodID)
@@ -1132,6 +1137,7 @@ void CCompressDialog::SetMethod(int keepMethodId)
   {
     SetDictionary();
     SetOrder();
+    SetParams();
   }
 }
 
@@ -1216,6 +1222,42 @@ void CCompressDialog::AddDictionarySize(UInt32 size)
   m_Dictionary.SetItemData(index, size);
 }
 
+typedef enum {
+  FL2_fast,
+  FL2_opt,
+  FL2_ultra
+} FL2_strategy;
+
+typedef struct {
+  unsigned dictionaryLog;    /* largest match distance : larger == more compression, more memory needed during decompression; >= 27 == more memory, slower */
+  unsigned overlapFraction;  /* overlap between consecutive blocks in 1/16 units: larger == more compression, slower */
+  unsigned chainLog;         /* fully searched segment : larger == more compression, slower, more memory; hybrid mode only (ultra) */
+  unsigned searchLog;        /* nb of searches : larger == more compression, slower; hybrid mode only (ultra) */
+  unsigned searchDepth;      /* maximum depth for resolving string matches : larger == more compression, slower; >= 64 == more memory, slower */
+  unsigned fastLength;       /* acceptable match size for parser, not less than searchDepth : larger == more compression, slower; fast bytes parameter from 7-zip */
+  unsigned divideAndConquer; /* split long chains of 2-byte matches into shorter chains with a small overlap : faster, somewhat less compression; enabled by default */
+  unsigned bufferLog;        /* buffer size for processing match chains is (dictionaryLog - bufferLog) : when divideAndConquer enabled, affects compression; */
+                             /* when divideAndConquer disabled, affects speed in a hardware-dependent manner */
+  FL2_strategy strategy;     /* encoder strategy : fast, optimized or ultra (hybrid) */
+} FL2_compressionParameters;
+
+#define FL2_MAX_7Z_CLEVEL 9
+
+static const FL2_compressionParameters FL2_7zCParameters[FL2_MAX_7Z_CLEVEL + 1] = {
+  { 0,0,0,0,0,0,0 },
+  { 20, 1, 7, 0, 6, 32, 1, 8, FL2_fast }, /* 1 */
+  { 20, 2, 7, 0, 12, 32, 1, 8, FL2_fast }, /* 2 */
+  { 21, 2, 7, 0, 16, 32, 1, 8, FL2_fast }, /* 3 */
+  { 20, 2, 7, 0, 16, 32, 1, 8, FL2_opt }, /* 4 */
+  { 24, 2, 9, 0, 40, 48, 1, 8, FL2_ultra }, /* 5 */
+  { 25, 2, 10, 0, 48, 64, 1, 8, FL2_ultra }, /* 6 */
+  { 26, 2, 11, 1, 60, 96, 1, 9, FL2_ultra }, /* 7 */
+  { 27, 2, 12, 2, 128, 128, 1, 10, FL2_ultra }, /* 8 */
+  { 27, 3, 14, 3, 252, 192, 0, 10, FL2_ultra } /* 9 */
+};
+
+#define RMF_BUILDER_SIZE (8 * 0x40100U)
+
 void CCompressDialog::SetDictionary()
 {
   m_Dictionary.ResetContent();
@@ -1282,6 +1324,40 @@ void CCompressDialog::SetDictionary()
       break;
     }
     
+    case kFastLZMA2:
+    {
+      static const UInt32 kMinDicSize = (1 << 20);
+      level += !level;
+      if (level > FL2_MAX_7Z_CLEVEL)
+        level = FL2_MAX_7Z_CLEVEL;
+      if (defaultDict == (UInt32)(Int32)-1)
+        defaultDict = (UInt32)1 << FL2_7zCParameters[level].dictionaryLog;
+
+      AddDictionarySize(kMinDicSize);
+      m_Dictionary.SetCurSel(0);
+
+      for (unsigned i = 20; i <= 31; i++) {
+        UInt32 dict = (UInt32)1 << i;
+
+        if (dict >
+#ifdef MY_CPU_64BIT
+        (1 << 30)
+#else
+          (1 << 26)
+#endif
+          )
+          continue;
+
+        AddDictionarySize(dict);
+        UInt64 decomprSize;
+        UInt64 requiredComprSize = GetMemoryUsage(dict, decomprSize);
+        if (dict <= defaultDict && (!maxRamSize_Defined || requiredComprSize <= maxRamSize))
+          m_Dictionary.SetCurSel(m_Dictionary.GetCount() - 1);
+      }
+
+      break;
+    }
+
     case kPPMd:
     {
       if (defaultDict == (UInt32)(Int32)-1)
@@ -1421,9 +1497,14 @@ void CCompressDialog::SetOrder()
   {
     case kLZMA:
     case kLZMA2:
+    case kFastLZMA2:
     {
-      if (defaultOrder == (UInt32)(Int32)-1)
-        defaultOrder = (level >= 7) ? 64 : 32;
+      if (defaultOrder == (UInt32)(Int32)-1) {
+        if (methodID == kFastLZMA2)
+          defaultOrder = FL2_7zCParameters[level].fastLength;
+        else 
+          defaultOrder = (level >= 7) ? 64 : 32;
+      }
       for (unsigned i = 3; i <= 8; i++)
         for (unsigned j = 0; j < 2; j++)
         {
@@ -1635,6 +1716,7 @@ void CCompressDialog::SetNumThreads()
   {
     case kLZMA: numAlgoThreadsMax = 2; break;
     case kLZMA2: numAlgoThreadsMax = 32; break;
+    case kFastLZMA2: numAlgoThreadsMax = 200; break;
     case kBZip2: numAlgoThreadsMax = 32; break;
   }
   if (IsZipFormat())
@@ -1745,6 +1827,22 @@ UInt64 CCompressDialog::GetMemoryUsage(UInt32 dict, UInt64 &decompressMemory)
       return size;
     }
   
+    case kFastLZMA2:
+    {
+      if (level > FL2_MAX_7Z_CLEVEL)
+        level = FL2_MAX_7Z_CLEVEL;
+      size += dict * 5 + (1UL << 18) * numThreads;
+      unsigned depth = FL2_7zCParameters[level].searchDepth;
+      UInt32 bufSize = UInt32(1) << (FL2_7zCParameters[level].dictionaryLog - FL2_7zCParameters[level].bufferLog);
+      size += (bufSize * 12 + RMF_BUILDER_SIZE) * numThreads;
+      if (dict > (UInt32(1) << 26) || depth > 63)
+        size += dict;
+      if (FL2_7zCParameters[level].strategy == FL2_ultra)
+        size += (UInt32(4) << 14) + (UInt32(4) << FL2_7zCParameters[level].chainLog);
+      decompressMemory = dict + (2 << 20);
+      return size;
+    }
+
     case kPPMd:
     {
       decompressMemory = dict + (2 << 20);
@@ -1818,7 +1916,23 @@ void CCompressDialog::SetParams()
   if (index >= 0)
   {
     const NCompression::CFormatOptions &fo = m_RegistryInfo.Formats[index];
-    m_Params.SetText(fo.Options);
+    UString Options = fo.Options;
+    UString options = fo.Options;
+    options.MakeLower_Ascii();
+    int len = 6;
+    int i = options.Find(L"mf=rc0");
+    if (i < 0) {
+      i = options.Find(L"mfrc0");
+      --len;
+    }
+    if (i >= 0 && GetMethodID() != kFastLZMA2) {
+      Options.Delete(i, len);
+    }
+    else if (i < 0 && GetMethodID() == kFastLZMA2) {
+      Options.Add_Space_if_NotEmpty();
+      Options += L"mf=RC0";
+    }
+    m_Params.SetText(Options);
   }
 }
 
