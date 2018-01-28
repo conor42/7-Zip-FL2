@@ -175,6 +175,8 @@ static const EMethodID g_SwfcMethods[] =
   // kLZMA
 };
 
+static const char kFastLzma2Name[] = "Fast LZMA2";
+
 struct CFormatInfo
 {
   LPCSTR Name;
@@ -1074,12 +1076,16 @@ void CCompressDialog::SetLevel()
   
   for (unsigned i = 0; i <= 9; i++)
   {
+    UString s;
+    s.Add_UInt32(i);
     if ((fi.LevelsMask & (1 << i)) != 0)
     {
+      s += L" - ";
       UInt32 langID = g_Levels[i];
-      int index = (int)m_Level.AddString(LangString(langID));
-      m_Level.SetItemData(index, i);
+      s += LangString(langID);
     }
+    int index = (int)m_Level.AddString(s);
+    m_Level.SetItemData(index, i);
   }
   SetNearestSelectComboBox(m_Level, level);
   SetMethod();
@@ -1110,8 +1116,8 @@ void CCompressDialog::SetMethod(int keepMethodId)
   {
     const NCompression::CFormatOptions &fo = m_RegistryInfo.Formats[index];
     defaultMethod = fo.Method;
-    if(fo.Options.Find(L"mf=RMF") >= 0)
-      defaultMethod = L"Fast LZMA2";
+    if(fo.Method.IsEqualTo_Ascii_NoCase(kMethodsNames[kLZMA2]) == 0 && fo.Options.Find(L"mf=HC") < 0 && fo.Options.Find(L"mf=BT") < 0)
+      defaultMethod = kFastLzma2Name;
   }
   bool isSfx = IsSFX();
   bool weUseSameMethod = false;
@@ -1122,7 +1128,7 @@ void CCompressDialog::SetMethod(int keepMethodId)
     if (isSfx)
       if (!IsMethodSupportedBySfx(methodID))
         continue;
-    const char *method = (methodID == kFastLZMA2) ? "Fast LZMA2" : kMethodsNames[methodID];
+    const char *method = (methodID == kFastLZMA2) ? kFastLzma2Name : kMethodsNames[methodID];
     int itemIndex = (int)ComboBox_AddStringAscii(m_Method, method);
     m_Method.SetItemData(itemIndex, methodID);
     if (keepMethodId == methodID)
@@ -1921,13 +1927,16 @@ void CCompressDialog::SetParams()
     UString Options = fo.Options;
     UString options = fo.Options;
     options.MakeLower_Ascii();
-    int i = options.Find(L"mf=rmf");
-    if (i >= 0 && GetMethodID() != kFastLZMA2) {
+    int i = options.Find(L"mf=hc");
+    if(i < 0) i = options.Find(L"mf=bt");
+    if (i >= 0 && GetMethodID() != kLZMA2) {
       Options.Delete(i, 6);
     }
-    else if (i < 0 && GetMethodID() == kFastLZMA2) {
+    else if (GetMethodID() == kLZMA2) {
+      if (i >= 0)
+        Options.Delete(i, 6);
       Options.Add_Space_if_NotEmpty();
-      Options += L"mf=RMF";
+      Options += (GetLevel2() >= 5) ? L"mf=BT4" : L"mf=HC4";
     }
     m_Params.SetText(Options);
   }

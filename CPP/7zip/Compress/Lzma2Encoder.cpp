@@ -72,7 +72,7 @@ STDMETHODIMP CEncoder::SetCoderProperties(const PROPID *propIDs,
   {
     RINOK(SetLzma2Prop(propIDs[i], coderProps[i], lzma2Props));
   }
-  if (lzma2Props.lzmaProps.btMode > 1) {
+  if (lzma2Props.lzmaProps.btMode < 0 || lzma2Props.lzmaProps.btMode > 1) {
       if (_fl2encoder == NULL) {
           _fl2encoder = FL2_createCCtxMt(lzma2Props.numTotalThreads);
           if (_fl2encoder == NULL)
