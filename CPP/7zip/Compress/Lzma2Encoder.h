@@ -7,6 +7,7 @@
 #include "../../../C/fast-lzma2.h"
 
 #include "../../Common/MyCom.h"
+#include "../../Common/MyBuffer.h"
 
 #include "../ICoder.h"
 
@@ -22,8 +23,7 @@ class CEncoder:
 {
   CLzma2EncHandle _encoder;
   FL2_CCtx* _fl2encoder;
-  BYTE *inBuffer;
-  size_t dictAlloc;
+  CByteBuffer inBuffer;
   UInt64 reduceSize;
   UInt32 dictSize;
 
