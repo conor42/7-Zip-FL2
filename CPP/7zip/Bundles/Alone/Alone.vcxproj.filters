@@ -91,9 +91,6 @@
     <Filter Include="C\Xz">
       <UniqueIdentifier>{92a2d7e1-afc7-4f48-9acf-b0665a4a4b45}</UniqueIdentifier>
     </Filter>
-    <Filter Include="C\fast-lzma2">
-      <UniqueIdentifier>{20e39214-0d2b-42ea-85b0-9e6a5bda6e5f}</UniqueIdentifier>
-    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\UI\Console\ArError.h">
@@ -1447,45 +1444,6 @@
     </ClCompile>
     <ClCompile Include="..\..\..\..\C\Threads.c">
       <Filter>C</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\fast-lzma2\error_private.c">
-      <Filter>C\fast-lzma2</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\fast-lzma2\fl2_common.c">
-      <Filter>C\fast-lzma2</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\fast-lzma2\fl2_compress.c">
-      <Filter>C\fast-lzma2</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\fast-lzma2\fl2_decompress.c">
-      <Filter>C\fast-lzma2</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\fast-lzma2\lzma2_dec.c">
-      <Filter>C\fast-lzma2</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\fast-lzma2\lzma2_enc.c">
-      <Filter>C\fast-lzma2</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\fast-lzma2\pool.c">
-      <Filter>C\fast-lzma2</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\fast-lzma2\radix_bitpack.c">
-      <Filter>C\fast-lzma2</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\fast-lzma2\radix_mf.c">
-      <Filter>C\fast-lzma2</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\fast-lzma2\radix_struct.c">
-      <Filter>C\fast-lzma2</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\fast-lzma2\range_enc.c">
-      <Filter>C\fast-lzma2</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\fast-lzma2\threading.c">
-      <Filter>C\fast-lzma2</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\fast-lzma2\xxhash.c">
-      <Filter>C\fast-lzma2</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

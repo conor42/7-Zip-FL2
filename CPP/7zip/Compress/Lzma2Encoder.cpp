@@ -61,6 +61,56 @@ HRESULT SetLzma2Prop(PROPID propID, const PROPVARIANT &prop, CLzma2EncProps &lzm
 
 #define CHECK_F(f) if (FL2_isError(f)) return E_INVALIDARG;  /* check and convert error code */
 
+HRESULT CEncoder::SetFL2Properties(CLzma2EncProps& lzma2Props)
+{
+  if (_fl2encoder == NULL) {
+    _fl2encoder = FL2_createCCtxMt(lzma2Props.numTotalThreads);
+    if (_fl2encoder == NULL)
+      return E_OUTOFMEMORY;
+  }
+  if (lzma2Props.lzmaProps.algo > 2) {
+    if (lzma2Props.lzmaProps.algo > 3)
+      return E_INVALIDARG;
+    lzma2Props.lzmaProps.algo = 2;
+    FL2_CCtx_setParameter(_fl2encoder, FL2_p_highCompression, 1);
+    FL2_CCtx_setParameter(_fl2encoder, FL2_p_compressionLevel, lzma2Props.lzmaProps.level);
+  }
+  else {
+    FL2_CCtx_setParameter(_fl2encoder, FL2_p_7zLevel, lzma2Props.lzmaProps.level);
+  }
+  dictSize = lzma2Props.lzmaProps.dictSize;
+  if (!dictSize) {
+    dictSize = (UInt32)1 << FL2_CCtx_setParameter(_fl2encoder, FL2_p_dictionaryLog, 0);
+  }
+  reduceSize = lzma2Props.lzmaProps.reduceSize;
+  reduceSize += (reduceSize < (UInt64)-1); /* prevent extra buffer shift after read */
+  dictSize = (UInt32)min(dictSize, reduceSize);
+  unsigned dictLog = FL2_DICTLOG_MIN;
+  while (((UInt32)1 << dictLog) < dictSize)
+    ++dictLog;
+  CHECK_F(FL2_CCtx_setParameter(_fl2encoder, FL2_p_dictionaryLog, dictLog));
+  if (lzma2Props.lzmaProps.algo >= 0) {
+    CHECK_F(FL2_CCtx_setParameter(_fl2encoder, FL2_p_strategy, (unsigned)lzma2Props.lzmaProps.algo));
+  }
+  if (lzma2Props.lzmaProps.fb > 0)
+    CHECK_F(FL2_CCtx_setParameter(_fl2encoder, FL2_p_fastLength, lzma2Props.lzmaProps.fb));
+  if (lzma2Props.lzmaProps.mc) {
+    unsigned ml = 0;
+    while (((UInt32)1 << ml) < lzma2Props.lzmaProps.mc)
+      ++ml;
+    CHECK_F(FL2_CCtx_setParameter(_fl2encoder, FL2_p_searchLog, ml));
+  }
+  if (lzma2Props.lzmaProps.lc >= 0)
+    CHECK_F(FL2_CCtx_setParameter(_fl2encoder, FL2_p_literalCtxBits, lzma2Props.lzmaProps.lc));
+  if (lzma2Props.lzmaProps.lp >= 0)
+    CHECK_F(FL2_CCtx_setParameter(_fl2encoder, FL2_p_literalPosBits, lzma2Props.lzmaProps.lp));
+  if (lzma2Props.lzmaProps.pb >= 0)
+    CHECK_F(FL2_CCtx_setParameter(_fl2encoder, FL2_p_posBits, lzma2Props.lzmaProps.pb));
+  FL2_CCtx_setParameter(_fl2encoder, FL2_p_omitProperties, 1);
+  FL2_CCtx_setParameter(_fl2encoder, FL2_p_doXXHash, 0);
+  return S_OK;
+}
+
 STDMETHODIMP CEncoder::SetCoderProperties(const PROPID *propIDs,
   const PROPVARIANT *coderProps, UInt32 numProps)
 {
@@ -72,51 +122,7 @@ STDMETHODIMP CEncoder::SetCoderProperties(const PROPID *propIDs,
     RINOK(SetLzma2Prop(propIDs[i], coderProps[i], lzma2Props));
   }
   if (lzma2Props.lzmaProps.btMode < 0 || lzma2Props.lzmaProps.btMode > 1) {
-    if (_fl2encoder == NULL) {
-      _fl2encoder = FL2_createCCtxMt(lzma2Props.numTotalThreads);
-      if (_fl2encoder == NULL)
-        return E_OUTOFMEMORY;
-    }
-    if (lzma2Props.lzmaProps.algo > 2) {
-      if (lzma2Props.lzmaProps.algo > 3)
-        return E_INVALIDARG;
-      lzma2Props.lzmaProps.algo = 2;
-      FL2_CCtx_setParameter(_fl2encoder, FL2_p_highCompression, 1);
-      FL2_CCtx_setParameter(_fl2encoder, FL2_p_compressionLevel, lzma2Props.lzmaProps.level);
-    }
-    else {
-      FL2_CCtx_setParameter(_fl2encoder, FL2_p_7zLevel, lzma2Props.lzmaProps.level);
-    }
-    dictSize = lzma2Props.lzmaProps.dictSize;
-    if (!dictSize) {
-      dictSize = (UInt32)1 << FL2_CCtx_setParameter(_fl2encoder, FL2_p_dictionaryLog, 0);
-    }
-    reduceSize = lzma2Props.lzmaProps.reduceSize;
-    reduceSize += (reduceSize < (UInt64)-1); /* prevent extra buffer shift after read */
-    dictSize = (UInt32)min(dictSize, reduceSize);
-    unsigned dictLog = FL2_DICTLOG_MIN;
-    while (((UInt32)1 << dictLog) < dictSize)
-      ++dictLog;
-    CHECK_F(FL2_CCtx_setParameter(_fl2encoder, FL2_p_dictionaryLog, dictLog));
-    if (lzma2Props.lzmaProps.algo >= 0) {
-      CHECK_F(FL2_CCtx_setParameter(_fl2encoder, FL2_p_strategy, (unsigned)lzma2Props.lzmaProps.algo));
-    }
-    if (lzma2Props.lzmaProps.fb > 0)
-      CHECK_F(FL2_CCtx_setParameter(_fl2encoder, FL2_p_fastLength, lzma2Props.lzmaProps.fb));
-    if (lzma2Props.lzmaProps.mc) {
-      unsigned ml = 0;
-      while (((UInt32)1 << ml) < lzma2Props.lzmaProps.mc)
-        ++ml;
-      CHECK_F(FL2_CCtx_setParameter(_fl2encoder, FL2_p_searchLog, ml));
-    }
-    if (lzma2Props.lzmaProps.lc >= 0)
-      CHECK_F(FL2_CCtx_setParameter(_fl2encoder, FL2_p_literalCtxBits, lzma2Props.lzmaProps.lc));
-    if (lzma2Props.lzmaProps.lp >= 0)
-      CHECK_F(FL2_CCtx_setParameter(_fl2encoder, FL2_p_literalPosBits, lzma2Props.lzmaProps.lp));
-    if (lzma2Props.lzmaProps.pb >= 0)
-      CHECK_F(FL2_CCtx_setParameter(_fl2encoder, FL2_p_posBits, lzma2Props.lzmaProps.pb));
-    FL2_CCtx_setParameter(_fl2encoder, FL2_p_omitProperties, 1);
-    FL2_CCtx_setParameter(_fl2encoder, FL2_p_doXXHash, 0);
+    return SetFL2Properties(lzma2Props);
   }
   else {
     _encoder = Lzma2Enc_Create(&g_Alloc, &g_BigAlloc);
@@ -124,7 +130,6 @@ STDMETHODIMP CEncoder::SetCoderProperties(const PROPID *propIDs,
       return E_OUTOFMEMORY;
     return SResToHRESULT(Lzma2Enc_SetProps(_encoder, &lzma2Props));
   }
-  return S_OK;
 }
 
 

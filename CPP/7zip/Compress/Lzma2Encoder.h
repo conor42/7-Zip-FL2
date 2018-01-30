@@ -27,6 +27,7 @@ class CEncoder:
   UInt64 reduceSize;
   UInt32 dictSize;
 
+  HRESULT SetFL2Properties(CLzma2EncProps& lzma2Props);
   HRESULT FL2Code(ISequentialInStream *inStream, ISequentialOutStream *outStream,
       const UInt64 *inSize, const UInt64 *outSize, ICompressProgressInfo *progress);
 public:
