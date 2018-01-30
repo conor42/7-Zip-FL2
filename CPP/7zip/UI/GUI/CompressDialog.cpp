@@ -1116,7 +1116,7 @@ void CCompressDialog::SetMethod(int keepMethodId)
   {
     const NCompression::CFormatOptions &fo = m_RegistryInfo.Formats[index];
     defaultMethod = fo.Method;
-    if(fo.Method.IsEqualTo_Ascii_NoCase(kMethodsNames[kLZMA2]) == 0 && fo.Options.Find(L"mf=HC") < 0 && fo.Options.Find(L"mf=BT") < 0)
+    if(fo.Method.IsEqualTo_Ascii_NoCase(kMethodsNames[kLZMA2]) && fo.Options.Find(L"mf=HC") < 0 && fo.Options.Find(L"mf=BT") < 0)
       defaultMethod = kFastLzma2Name;
   }
   bool isSfx = IsSFX();
