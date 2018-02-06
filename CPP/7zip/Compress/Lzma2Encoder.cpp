@@ -3,6 +3,7 @@
 #include "StdAfx.h"
 
 #include "../../../C/Alloc.h"
+#include "../../../C/CpuArch.h"
 
 #include "../../../C/fl2_errors.h"
 
@@ -10,6 +11,10 @@
 #include "../Common/StreamUtils.h"
 
 #include "Lzma2Encoder.h"
+
+#ifdef MY_CPU_32BIT
+static const UInt32 kMaxDictx86 = 1U << 26;
+#endif
 
 namespace NCompress {
 
@@ -81,6 +86,9 @@ HRESULT CEncoder::SetFL2Properties(CLzma2EncProps& lzma2Props)
   dictSize = lzma2Props.lzmaProps.dictSize;
   if (!dictSize) {
     dictSize = (UInt32)1 << FL2_CCtx_setParameter(_fl2encoder, FL2_p_dictionaryLog, 0);
+#ifdef MY_CPU_32BIT
+	dictSize = min(dictSize, kMaxDictx86);
+#endif
   }
   reduceSize = lzma2Props.lzmaProps.reduceSize;
   reduceSize += (reduceSize < (UInt64)-1); /* prevent extra buffer shift after read */
