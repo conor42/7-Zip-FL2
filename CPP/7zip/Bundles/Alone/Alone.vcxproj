@@ -491,10 +491,12 @@
     <ClInclude Include="..\..\..\..\C\LzFindMt.h" />
     <ClInclude Include="..\..\..\..\C\LzHash.h" />
     <ClInclude Include="..\..\..\..\C\Lzma2Dec.h" />
+    <ClInclude Include="..\..\..\..\C\Lzma2DecMt.h" />
     <ClInclude Include="..\..\..\..\C\Lzma2Enc.h" />
     <ClInclude Include="..\..\..\..\C\LzmaDec.h" />
     <ClInclude Include="..\..\..\..\C\LzmaEnc.h" />
     <ClInclude Include="..\..\..\..\C\MtCoder.h" />
+    <ClInclude Include="..\..\..\..\C\MtDec.h" />
     <ClInclude Include="..\..\..\..\C\Ppmd.h" />
     <ClInclude Include="..\..\..\..\C\Ppmd7.h" />
     <ClInclude Include="..\..\..\..\C\Ppmd8.h" />
@@ -1064,6 +1066,9 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
       </PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="..\..\..\..\C\Lzma2DecMt.c">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="..\..\..\..\C\Lzma2Enc.c">
       <Optimization Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">MaxSpeed</Optimization>
       <Optimization Condition="'$(Configuration)|$(Platform)'=='Release|x64'">MaxSpeed</Optimization>
@@ -1143,6 +1148,9 @@
       </PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
       </PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\C\MtDec.c">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="..\..\..\..\C\Ppmd7.c">
       <Optimization Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">MaxSpeed</Optimization>

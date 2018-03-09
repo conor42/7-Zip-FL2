@@ -21,7 +21,7 @@ namespace NArchive {
 namespace N7z {
 
 #define k_LZMA_Name "LZMA"
-#define kDefaultMethodName "LZMA2"
+#define kDefaultMethodName "FLZMA2"
 #define k_Copy_Name "Copy"
 
 #define k_MatchFinder_ForHeaders "BT2"

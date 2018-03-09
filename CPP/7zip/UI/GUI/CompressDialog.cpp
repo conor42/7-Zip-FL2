@@ -106,7 +106,7 @@ enum EMethodID
   kCopy,
   kLZMA,
   kLZMA2,
-  kFastLZMA2,
+  kFLZMA2,
   kPPMd,
   kBZip2,
   kDeflate,
@@ -119,7 +119,7 @@ static LPCSTR const kMethodsNames[] =
     "Copy"
   , "LZMA"
   , "LZMA2"
-  , "LZMA2"
+  , "FLZMA2"
   , "PPMd"
   , "BZip2"
   , "Deflate"
@@ -129,7 +129,7 @@ static LPCSTR const kMethodsNames[] =
 
 static const EMethodID g_7zMethods[] =
 {
-  kFastLZMA2,
+  kFLZMA2,
   kLZMA2,
   kLZMA,
   kPPMd,
@@ -141,7 +141,7 @@ static const EMethodID g_7zSfxMethods[] =
   kCopy,
   kLZMA,
   kLZMA2,
-  kFastLZMA2,
+  kFLZMA2,
   kPPMd
 };
 
@@ -174,8 +174,6 @@ static const EMethodID g_SwfcMethods[] =
   kDeflate
   // kLZMA
 };
-
-static const char kFastLzma2Name[] = "Fast LZMA2";
 
 struct CFormatInfo
 {
@@ -783,7 +781,7 @@ void CCompressDialog::OnOK()
   }
 
   m_Params.GetText(Info.Options);
-
+  
   UString volumeString;
   m_Volume.GetText(volumeString);
   volumeString.Trim();
@@ -888,7 +886,7 @@ bool CCompressDialog::OnCommand(int code, int itemID, LPARAM lParam)
           fo.ResetForLevelChange();
         }
 
-        SetMethod();
+        SetMethod(GetMethodID());
         SetSolidBlockSize();
         SetNumThreads();
         CheckSFXNameChange();
@@ -902,7 +900,6 @@ bool CCompressDialog::OnCommand(int code, int itemID, LPARAM lParam)
         SetOrder();
         SetSolidBlockSize();
         SetNumThreads();
-        SetParams();
         CheckSFXNameChange();
         SetMemoryUsage();
         return true;
@@ -1116,8 +1113,6 @@ void CCompressDialog::SetMethod(int keepMethodId)
   {
     const NCompression::CFormatOptions &fo = m_RegistryInfo.Formats[index];
     defaultMethod = fo.Method;
-    if(fo.Method.IsEqualTo_Ascii_NoCase(kMethodsNames[kLZMA2]) && fo.Options.Find(L"mf=HC") < 0 && fo.Options.Find(L"mf=BT") < 0)
-      defaultMethod = kFastLzma2Name;
   }
   bool isSfx = IsSFX();
   bool weUseSameMethod = false;
@@ -1128,7 +1123,7 @@ void CCompressDialog::SetMethod(int keepMethodId)
     if (isSfx)
       if (!IsMethodSupportedBySfx(methodID))
         continue;
-    const char *method = (methodID == kFastLZMA2) ? kFastLzma2Name : kMethodsNames[methodID];
+    const char *method = kMethodsNames[methodID];
     int itemIndex = (int)ComboBox_AddStringAscii(m_Method, method);
     m_Method.SetItemData(itemIndex, methodID);
     if (keepMethodId == methodID)
@@ -1141,12 +1136,8 @@ void CCompressDialog::SetMethod(int keepMethodId)
       m_Method.SetCurSel(itemIndex);
   }
   
-  if (!weUseSameMethod)
-  {
-    SetDictionary();
-    SetOrder();
-    SetParams();
-  }
+  SetDictionary();
+  SetOrder();
 }
 
 bool CCompressDialog::IsZipFormat()
@@ -1253,15 +1244,15 @@ typedef struct {
 
 static const FL2_compressionParameters FL2_7zCParameters[FL2_MAX_7Z_CLEVEL + 1] = {
   { 0,0,0,0,0,0,0 },
-  { 20, 1, 7, 0, 6, 32, 1, 8, FL2_fast }, /* 1 */
-  { 20, 2, 7, 0, 12, 32, 1, 8, FL2_fast }, /* 2 */
-  { 21, 2, 7, 0, 16, 32, 1, 8, FL2_fast }, /* 3 */
-  { 20, 2, 7, 0, 16, 32, 1, 8, FL2_opt }, /* 4 */
-  { 24, 2, 9, 0, 40, 48, 1, 8, FL2_ultra }, /* 5 */
-  { 25, 2, 10, 0, 48, 64, 1, 8, FL2_ultra }, /* 6 */
-  { 26, 2, 11, 1, 60, 96, 1, 9, FL2_ultra }, /* 7 */
-  { 27, 2, 12, 2, 128, 128, 1, 10, FL2_ultra }, /* 8 */
-  { 27, 3, 14, 3, 252, 192, 0, 10, FL2_ultra } /* 9 */
+{ 20, 1, 7, 0, 6, 32, 1, 8, FL2_fast }, /* 1 */
+{ 20, 2, 7, 0, 12, 32, 1, 8, FL2_fast }, /* 2 */
+{ 21, 2, 7, 0, 16, 32, 1, 8, FL2_fast }, /* 3 */
+{ 20, 2, 7, 0, 16, 32, 1, 8, FL2_opt }, /* 4 */
+{ 24, 2, 9, 0, 40, 48, 1, 8, FL2_ultra }, /* 5 */
+{ 25, 2, 10, 0, 48, 64, 1, 8, FL2_ultra }, /* 6 */
+{ 26, 2, 11, 1, 60, 96, 1, 9, FL2_ultra }, /* 7 */
+{ 27, 2, 12, 2, 128, 128, 1, 10, FL2_ultra }, /* 8 */
+{ 27, 3, 14, 3, 252, 192, 0, 10, FL2_ultra } /* 9 */
 };
 
 #define RMF_BUILDER_SIZE (8 * 0x40100U)
@@ -1332,7 +1323,7 @@ void CCompressDialog::SetDictionary()
       break;
     }
     
-    case kFastLZMA2:
+    case kFLZMA2:
     {
       static const UInt32 kMinDicSize = (1 << 20);
       level += !level;
@@ -1505,12 +1496,12 @@ void CCompressDialog::SetOrder()
   {
     case kLZMA:
     case kLZMA2:
-    case kFastLZMA2:
+    case kFLZMA2:
     {
       if (defaultOrder == (UInt32)(Int32)-1) {
-        if (methodID == kFastLZMA2)
+        if (methodID == kFLZMA2)
           defaultOrder = FL2_7zCParameters[level].fastLength;
-        else 
+        else
           defaultOrder = (level >= 7) ? 64 : 32;
       }
       for (unsigned i = 3; i <= 8; i++)
@@ -1724,7 +1715,7 @@ void CCompressDialog::SetNumThreads()
   {
     case kLZMA: numAlgoThreadsMax = 2; break;
     case kLZMA2: numAlgoThreadsMax = 32; break;
-    case kFastLZMA2: numAlgoThreadsMax = 200; break;
+    case kFLZMA2: numAlgoThreadsMax = 200; break;
     case kBZip2: numAlgoThreadsMax = 32; break;
   }
   if (IsZipFormat())
@@ -1835,7 +1826,7 @@ UInt64 CCompressDialog::GetMemoryUsage(UInt32 dict, UInt64 &decompressMemory)
       return size;
     }
   
-    case kFastLZMA2:
+    case kFLZMA2:
     {
       if (level > FL2_MAX_7Z_CLEVEL)
         level = FL2_MAX_7Z_CLEVEL;
@@ -1924,21 +1915,7 @@ void CCompressDialog::SetParams()
   if (index >= 0)
   {
     const NCompression::CFormatOptions &fo = m_RegistryInfo.Formats[index];
-    UString Options = fo.Options;
-    UString options = fo.Options;
-    options.MakeLower_Ascii();
-    int i = options.Find(L"mf=hc");
-    if(i < 0) i = options.Find(L"mf=bt");
-    if (i >= 0 && GetMethodID() != kLZMA2) {
-      Options.Delete(i, 6);
-    }
-    else if (GetMethodID() == kLZMA2) {
-      if (i >= 0)
-        Options.Delete(i, 6);
-      Options.Add_Space_if_NotEmpty();
-      Options += (GetLevel2() >= 5) ? L"mf=BT4" : L"mf=HC4";
-    }
-    m_Params.SetText(Options);
+    m_Params.SetText(fo.Options);
   }
 }
 
