@@ -105,6 +105,7 @@ COMPRESS_OBJS = \
   $O\CopyCoder.obj \
   $O\CopyRegister.obj \
   $O\DeltaFilter.obj \
+  $O\FastLzma2Register.obj \
   $O\Lzma2Decoder.obj \
   $O\Lzma2Encoder.obj \
   $O\Lzma2Register.obj \

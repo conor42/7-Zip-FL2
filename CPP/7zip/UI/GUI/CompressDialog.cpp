@@ -1332,18 +1332,17 @@ void CCompressDialog::SetDictionary()
       if (defaultDict == (UInt32)(Int32)-1)
         defaultDict = (UInt32)1 << FL2_7zCParameters[level].dictionaryLog;
 
-      AddDictionarySize(kMinDicSize);
       m_Dictionary.SetCurSel(0);
 
       for (unsigned i = 20; i <= 31; i++) {
         UInt32 dict = (UInt32)1 << i;
 
         if (dict >
-#ifdef MY_CPU_64BIT
-        (1 << 30)
-#else
-          (1 << 26)
-#endif
+          #ifdef MY_CPU_64BIT
+            (1 << 30)
+          #else
+            (1 << 27)
+          #endif
           )
           continue;
 

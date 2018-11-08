@@ -9,7 +9,11 @@ set LFLAGS=/SUBSYSTEM:WINDOWS,"5.01"
 
 cd %ROOT%\Bundles\Format7z
 nmake %OPTS%
-copy O\7za.dll %OUTDIR%\7z.dll
+copy O\7za.dll %OUTDIR%\7za.dll
+
+cd %ROOT%\Bundles\Format7zF
+nmake %OPTS%
+copy O\7z.dll %OUTDIR%\7z.dll
 
 cd %ROOT%\UI\FileManager
 nmake %OPTS%
@@ -18,6 +22,10 @@ copy O\7zFM.exe %OUTDIR%\7zFM.exe
 cd %ROOT%\UI\GUI
 nmake %OPTS%
 copy O\7zG.exe %OUTDIR%\7zG.exe
+
+cd %ROOT%\Bundles\Codec_flzma2
+nmake %OPTS%
+copy O\flzma2.dll %OUTDIR%\flzma2-x32.dll
 
 set LFLAGS=/SUBSYSTEM:CONSOLE,"5.01"
 cd %ROOT%\UI\Console

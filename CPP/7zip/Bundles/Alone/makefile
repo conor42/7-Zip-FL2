@@ -151,6 +151,7 @@ COMPRESS_OBJS = \
   $O\DeflateEncoder.obj \
   $O\DeflateRegister.obj \
   $O\DeltaFilter.obj \
+  $O\FastLzma2Register.obj \
   $O\ImplodeDecoder.obj \
   $O\Lzma2Decoder.obj \
   $O\Lzma2Encoder.obj \
