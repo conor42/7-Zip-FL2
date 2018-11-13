@@ -27,6 +27,7 @@ OBJS = \
   $(COMPRESS_OBJS) \
   $(CRYPTO_OBJS) \
   $(C_OBJS) \
+  $(FASTLZMA2_OBJS) \
   $(ASM_OBJS) \
   $O\resource.res \
 
@@ -170,6 +171,11 @@ $(GUI_OBJS): ../../UI/GUI/$(*B).cpp
 !IFDEF C_OBJS
 $(C_OBJS): ../../../../C/$(*B).c
 	$(COMPL_O2)
+!ENDIF
+
+!IFDEF FASTLZMA2_OBJS
+$(FASTLZMA2_OBJS): ../../../../C/fast-lzma2/$(*B).c
+	$(COMPL_O2) -DNO_XXHASH
 !ENDIF
 
 

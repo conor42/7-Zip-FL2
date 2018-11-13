@@ -4,7 +4,7 @@
 #define __LZMA2_ENCODER_H
 
 #include "../../../C/Lzma2Enc.h"
-#include "../../../C/fast-lzma2.h"
+#include "../../../C/fast-lzma2/fast-lzma2.h"
 
 #include "../../Common/MyCom.h"
 #include "../../Common/MyBuffer.h"

@@ -4,7 +4,7 @@
 
 #include "../../../C/Alloc.h"
 
-#include "../../../C/fl2_errors.h"
+#include "../../../C/fast-lzma2/fl2_errors.h"
 
 #include "../Common/CWrappers.h"
 #include "../Common/StreamUtils.h"

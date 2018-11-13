@@ -149,6 +149,19 @@ C_OBJS = \
   $O\XzEnc.obj \
   $O\XzIn.obj \
 
+FASTLZMA2_OBJS = \
+  $O\fl2_error_private.obj \
+  $O\fl2_pool.obj \
+  $O\fl2_threading.obj \
+  $O\fl2_common.obj \
+  $O\fl2_compress.obj \
+  $O\lzma2_enc.obj \
+  $O\radix_bitpack.obj \
+  $O\radix_mf.obj \
+  $O\radix_struct.obj \
+  $O\range_enc.obj \
+  $O\util.obj \
+
 !include "../../UI/Console/Console.mak"
 
 !include "../../Aes.mak"
