@@ -1,13 +1,5 @@
 LIBS = $(LIBS) oleaut32.lib ole32.lib
 
-!IF "$(CPU)" == "AMD64"
-LIBS = $(LIBS) ../../Compress/libflzma2-x64.lib
-!ELSEIF "$(CPU)" == "ARM"
-LIBS = $(LIBS) ../../Compress/libflzma2-arm.lib
-!ELSE
-LIBS = $(LIBS) ../../Compress/libflzma2-x86.lib
-!ENDIF
-
 !IFNDEF MY_NO_UNICODE
 CFLAGS = $(CFLAGS) -DUNICODE -D_UNICODE
 !ENDIF

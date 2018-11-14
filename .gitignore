@@ -79,6 +79,8 @@ artifacts/
 *.dll
 *.exe
 *.res
+*.exp
+*.lib
 
 # Chutzpah Test files
 _Chutzpah*

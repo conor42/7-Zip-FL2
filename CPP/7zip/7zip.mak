@@ -240,6 +240,8 @@ $(FASTLZMA2_OBJS): ../../../../C/fast-lzma2/$(*B).c
 	$(COMPLB_O2)
 {../../../../C}.c{$O}.obj::
 	$(CCOMPLB)
+{../../../../C/fast-lzma2}.c{$O}.obj::
+	$(CCOMPLB) -DNO_XXHASH
 
 !ENDIF
 
