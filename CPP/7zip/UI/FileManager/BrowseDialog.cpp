@@ -73,7 +73,7 @@ extern UString HResultToMessage(HRESULT errorCode);
 
 static void MessageBox_Error_Global(HWND wnd, const wchar_t *message)
 {
-  ::MessageBoxW(wnd, message, L"7-Zip", MB_ICONERROR);
+  ::MessageBoxW(wnd, message, L"7-Zip FL2", MB_ICONERROR);
 }
 
 static void MessageBox_HResError(HWND wnd, HRESULT errorCode, const wchar_t *name)

@@ -38,9 +38,9 @@
 #define _7ZIP_CUR_VER ((MY_VER_MAJOR << 16) | MY_VER_MINOR)
 #define _7ZIP_DLL_VER_COMPAT ((16 << 16) | 3)
 
-static LPCWSTR const k_7zip = L"7-Zip";
+static LPCWSTR const k_7zip = L"7-Zip-FL2";
 
-static LPCWSTR const k_Reg_Software_7zip = L"Software\\7-Zip";
+static LPCWSTR const k_Reg_Software_7zip = L"Software\\7-Zip-FL2";
 
 // #define _64BIT_INSTALLER 1
 
@@ -48,7 +48,7 @@ static LPCWSTR const k_Reg_Software_7zip = L"Software\\7-Zip";
   #define _64BIT_INSTALLER 1
 #endif
 
-#define k_7zip_with_Ver_base L"7-Zip " LLL(MY_VERSION)
+#define k_7zip_with_Ver_base L"7-Zip FL2 " LLL(MY_VERSION)
 
 #ifdef _64BIT_INSTALLER
   #define k_7zip_with_Ver k_7zip_with_Ver_base L" (x64)"
@@ -82,7 +82,7 @@ static LPCWSTR const k_Reg_Path32 = L"Path"
   #define k_Reg_WOW_Flag_32 0
 #endif
 
-#define k_7zip_CLSID L"{23170F69-40C1-278A-1000-000100020000}"
+#define k_7zip_CLSID L"{23170F69-163F-278A-1000-000100020000}"
 
 static LPCWSTR const k_Reg_CLSID_7zip = L"CLSID\\" k_7zip_CLSID;
 static LPCWSTR const k_Reg_CLSID_7zip_Inproc = L"CLSID\\" k_7zip_CLSID L"\\InprocServer32";
@@ -520,9 +520,9 @@ static LPCWSTR FindSubString(LPCWSTR s1, const char *s2)
 static void Set7zipPostfix(WCHAR *s)
 {
   NormalizePrefix(s);
-  if (FindSubString(s, "7-Zip"))
+  if (FindSubString(s, "7-Zip-FL2"))
     return;
-  wcscat(s, L"7-Zip\\");
+  wcscat(s, L"7-Zip-FL2\\");
 }
     
 
@@ -805,7 +805,7 @@ static void WriteShellEx()
   for (i = 0; i < sizeof(k_ShellEx_Items) / sizeof(k_ShellEx_Items[0]); i++)
   {
     wcscpy(destPath, k_ShellEx_Items[i]);
-    wcscat(destPath, L"\\7-Zip");
+    wcscat(destPath, L"\\7-Zip-FL2");
 
     #ifdef _64BIT_INSTALLER
     MyRegistry_CreateKeyAndVal_32(HKEY_CLASSES_ROOT, destPath, NULL, k_7zip_CLSID);
@@ -836,7 +836,7 @@ static void WriteShellEx()
   
   {
     HKEY destKey = 0;
-    LONG res = MyRegistry_CreateKey(HKEY_LOCAL_MACHINE, L"Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\7-Zip", &destKey);
+    LONG res = MyRegistry_CreateKey(HKEY_LOCAL_MACHINE, L"Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\7-Zip-FL2", &destKey);
     if (res == ERROR_SUCCESS)
     {
       // wcscpy(destPath, path);

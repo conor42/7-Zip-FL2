@@ -802,7 +802,7 @@ void CCompressDialog::OnOK()
         wchar_t s[32];
         ConvertUInt64ToString(volumeSize, s);
         if (::MessageBoxW(*this, MyFormatNew(IDS_SPLIT_CONFIRM, s),
-            L"7-Zip", MB_YESNOCANCEL | MB_ICONQUESTION) != IDYES)
+            L"7-Zip FL2", MB_YESNOCANCEL | MB_ICONQUESTION) != IDYES)
           return;
       }
     }

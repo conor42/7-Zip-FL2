@@ -18,6 +18,7 @@ static const UInt32 kLangIDs[] =
 };
 
 #define kHomePageURL TEXT("http://www.7-zip.org/")
+#define kHomePageURL2 TEXT("http://github.com/conor42/7-zip-FL2/")
 #define kHelpTopic "start.htm"
 
 #define LLL_(quote) L##quote
@@ -45,6 +46,7 @@ bool CAboutDialog::OnButtonClicked(int buttonID, HWND buttonHWND)
   switch (buttonID)
   {
     case IDB_ABOUT_HOMEPAGE: url = kHomePageURL; break;
+    case IDB_ABOUT_HOMEPAGE2: url = kHomePageURL2; break;
     default:
       return CModalDialog::OnButtonClicked(buttonID, buttonHWND);
   }

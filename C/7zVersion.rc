@@ -40,7 +40,7 @@ BEGIN \
             VALUE "InternalName", intName \
             VALUE "LegalCopyright", MY_COPYRIGHT \
             VALUE "OriginalFilename", origName \
-            VALUE "ProductName", "7-Zip Fast-LZMA2" \
+            VALUE "ProductName", "7-Zip FL2" \
             VALUE "ProductVersion", MY_VERSION \
         END \
     END \

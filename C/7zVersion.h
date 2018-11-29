@@ -10,7 +10,7 @@
   #define MY_VERSION_CPU MY_VERSION
 #endif
 
-#define MY_DATE "2018-04-30"
+#define MY_DATE "2018-11-29"
 #undef MY_COPYRIGHT
 #undef MY_VERSION_COPYRIGHT_DATE
 #define MY_AUTHOR_NAME "Igor Pavlov, Conor McCarthy"

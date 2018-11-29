@@ -1,4 +1,4 @@
-// DLLExports.cpp
+// DLLExportsExplorer.cpp
 //
 // Notes:
 // Win2000:
@@ -25,11 +25,11 @@
 
 #include "ContextMenu.h"
 
-static LPCTSTR const k_ShellExtName = TEXT("7-Zip Shell Extension");
+static LPCTSTR const k_ShellExtName = TEXT("7-Zip-FL2 Shell Extension");
 static LPCTSTR const k_Approved = TEXT("Software\\Microsoft\\Windows\\CurrentVersion\\Shell Extensions\\Approved");
 
 // {23170F69-40C1-278A-1000-000100020000}
-static LPCTSTR const k_Clsid = TEXT("{23170F69-40C1-278A-1000-000100020000}");
+static LPCTSTR const k_Clsid = TEXT("{23170F69-163F-278A-1000-000100020000}");
 
 DEFINE_GUID(CLSID_CZipContextMenu,
     k_7zip_GUID_Data1,

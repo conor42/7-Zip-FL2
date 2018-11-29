@@ -63,7 +63,7 @@ bool g_LVN_ITEMACTIVATE_Support = true;
 
 static void ErrorMessage(LPCWSTR message)
 {
-  MessageBoxW(NULL, message, L"7-Zip", MB_ICONERROR | MB_OK);
+  MessageBoxW(NULL, message, L"7-Zip FL2", MB_ICONERROR | MB_OK);
 }
 
 static void ErrorMessage(const char *s)
@@ -109,7 +109,7 @@ static int Main2()
   #endif
   if (commandStrings.Size() == 0)
   {
-    MessageBoxW(0, L"Specify command", L"7-Zip", 0);
+    MessageBoxW(0, L"Specify command", L"7-Zip FL2", 0);
     return 0;
   }
 

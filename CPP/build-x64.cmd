@@ -27,6 +27,14 @@ cd %ROOT%\Bundles\Codec_flzma2
 nmake %OPTS%
 copy AMD64\flzma2.dll %OUTDIR%\flzma2-x64.dll
 
+cd %ROOT%\..\..\C\Util\7zipInstall
+nmake %OPTS%
+copy AMD64\7zipInstall.exe %OUTDIR%\Install-x64.exe
+
+cd %ROOT%\..\..\C\Util\7zipUninstall
+nmake %OPTS%
+copy AMD64\7zipUninstall.exe %OUTDIR%\Uninstall.exe
+
 set LFLAGS=/SUBSYSTEM:CONSOLE,"5.02"
 cd %ROOT%\UI\Console
 nmake %OPTS%
