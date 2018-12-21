@@ -138,11 +138,12 @@ C_OBJS = \
   $O\Threads.obj \
 
 FASTLZMA2_OBJS = \
+  $O\dict_buffer.obj \
+  $O\fl2_common.obj \
+  $O\fl2_compress.obj \
   $O\fl2_error_private.obj \
   $O\fl2_pool.obj \
   $O\fl2_threading.obj \
-  $O\fl2_common.obj \
-  $O\fl2_compress.obj \
   $O\lzma2_enc.obj \
   $O\radix_bitpack.obj \
   $O\radix_mf.obj \

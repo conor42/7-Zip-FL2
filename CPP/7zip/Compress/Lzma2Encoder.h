@@ -45,8 +45,7 @@ class CFastEncoder :
   public ICompressWriteCoderProperties,
   public CMyUnknownImp
 {
-  FL2_CCtx* _encoder;
-  CByteBuffer inBuffer;
+  FL2_CStream* _encoder;
   UInt64 reduceSize;
   UInt32 dictSize;
 

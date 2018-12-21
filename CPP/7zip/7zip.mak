@@ -175,7 +175,7 @@ $(C_OBJS): ../../../../C/$(*B).c
 
 !IFDEF FASTLZMA2_OBJS
 $(FASTLZMA2_OBJS): ../../../../C/fast-lzma2/$(*B).c
-	$(COMPL_O2) -DNO_XXHASH
+	$(COMPL_O2) -DNO_XXHASH -DFL2_7ZIP_BUILD
 !ENDIF
 
 
@@ -241,7 +241,7 @@ $(FASTLZMA2_OBJS): ../../../../C/fast-lzma2/$(*B).c
 {../../../../C}.c{$O}.obj::
 	$(CCOMPLB)
 {../../../../C/fast-lzma2}.c{$O}.obj::
-	$(CCOMPLB) -DNO_XXHASH
+	$(CCOMPLB) -DNO_XXHASH -DFL2_7ZIP_BUILD
 
 !ENDIF
 

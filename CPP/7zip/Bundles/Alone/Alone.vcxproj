@@ -157,6 +157,7 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
+    <GenerateManifest>false</GenerateManifest>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -450,7 +451,7 @@
       <PreprocessorDefinitions>RMF_CHECK_INTEGRITY;_DEBUG;WIN32;_CONSOLE;_7ZIP_LARGE_PAGES;SUPPORT_DEVICE_FILE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AssemblerListingLocation>.\Debug\</AssemblerListingLocation>
       <PrecompiledHeaderOutputFile>.\Debug\Alone.pch</PrecompiledHeaderOutputFile>
-      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>StdAfx.h</PrecompiledHeaderFile>
       <ObjectFileName>.\Debug\</ObjectFileName>
       <ProgramDataBaseFileName>.\Debug\</ProgramDataBaseFileName>
@@ -485,6 +486,27 @@
     <ClInclude Include="..\..\..\..\C\BwtSort.h" />
     <ClInclude Include="..\..\..\..\C\CpuArch.h" />
     <ClInclude Include="..\..\..\..\C\Delta.h" />
+    <ClInclude Include="..\..\..\..\C\fast-lzma2\atomic.h" />
+    <ClInclude Include="..\..\..\..\C\fast-lzma2\compiler.h" />
+    <ClInclude Include="..\..\..\..\C\fast-lzma2\count.h" />
+    <ClInclude Include="..\..\..\..\C\fast-lzma2\data_block.h" />
+    <ClInclude Include="..\..\..\..\C\fast-lzma2\dict_buffer.h" />
+    <ClInclude Include="..\..\..\..\C\fast-lzma2\fastpos_table.h" />
+    <ClInclude Include="..\..\..\..\C\fast-lzma2\fl2_compress_internal.h" />
+    <ClInclude Include="..\..\..\..\C\fast-lzma2\fl2_errors.h" />
+    <ClInclude Include="..\..\..\..\C\fast-lzma2\fl2_error_private.h" />
+    <ClInclude Include="..\..\..\..\C\fast-lzma2\fl2_internal.h" />
+    <ClInclude Include="..\..\..\..\C\fast-lzma2\fl2_pool.h" />
+    <ClInclude Include="..\..\..\..\C\fast-lzma2\fl2_threading.h" />
+    <ClInclude Include="..\..\..\..\C\fast-lzma2\lzma2_enc.h" />
+    <ClInclude Include="..\..\..\..\C\fast-lzma2\mem.h" />
+    <ClInclude Include="..\..\..\..\C\fast-lzma2\platform.h" />
+    <ClInclude Include="..\..\..\..\C\fast-lzma2\radix_engine.h" />
+    <ClInclude Include="..\..\..\..\C\fast-lzma2\radix_get.h" />
+    <ClInclude Include="..\..\..\..\C\fast-lzma2\radix_internal.h" />
+    <ClInclude Include="..\..\..\..\C\fast-lzma2\radix_mf.h" />
+    <ClInclude Include="..\..\..\..\C\fast-lzma2\range_enc.h" />
+    <ClInclude Include="..\..\..\..\C\fast-lzma2\util.h" />
     <ClInclude Include="..\..\..\..\C\HuffEnc.h" />
     <ClInclude Include="..\..\..\..\C\IStream.h" />
     <ClInclude Include="..\..\..\..\C\LzFind.h" />
@@ -985,6 +1007,42 @@
       </PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
       </PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\C\fast-lzma2\dict_buffer.c">
+      <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NO_XXHASH;FL2_7ZIP_BUILD;_DEBUG;WIN32;_CONSOLE;_7ZIP_LARGE_PAGES;SUPPORT_DEVICE_FILE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\C\fast-lzma2\fl2_common.c">
+      <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NO_XXHASH;FL2_7ZIP_BUILD;_DEBUG;WIN32;_CONSOLE;_7ZIP_LARGE_PAGES;SUPPORT_DEVICE_FILE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\C\fast-lzma2\fl2_compress.c">
+      <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NO_XXHASH;FL2_7ZIP_BUILD;_DEBUG;WIN32;_CONSOLE;_7ZIP_LARGE_PAGES;SUPPORT_DEVICE_FILE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\C\fast-lzma2\fl2_error_private.c">
+      <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NO_XXHASH;FL2_7ZIP_BUILD;_DEBUG;WIN32;_CONSOLE;_7ZIP_LARGE_PAGES;SUPPORT_DEVICE_FILE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\C\fast-lzma2\fl2_pool.c">
+      <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NO_XXHASH;FL2_7ZIP_BUILD;_DEBUG;WIN32;_CONSOLE;_7ZIP_LARGE_PAGES;SUPPORT_DEVICE_FILE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\C\fast-lzma2\fl2_threading.c">
+      <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NO_XXHASH;FL2_7ZIP_BUILD;_DEBUG;WIN32;_CONSOLE;_7ZIP_LARGE_PAGES;SUPPORT_DEVICE_FILE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\C\fast-lzma2\lzma2_enc.c">
+      <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NO_XXHASH;FL2_7ZIP_BUILD;_DEBUG;WIN32;_CONSOLE;_7ZIP_LARGE_PAGES;SUPPORT_DEVICE_FILE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\C\fast-lzma2\radix_bitpack.c">
+      <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NO_XXHASH;FL2_7ZIP_BUILD;_DEBUG;WIN32;_CONSOLE;_7ZIP_LARGE_PAGES;SUPPORT_DEVICE_FILE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\C\fast-lzma2\radix_mf.c">
+      <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NO_XXHASH;FL2_7ZIP_BUILD;_DEBUG;WIN32;_CONSOLE;_7ZIP_LARGE_PAGES;SUPPORT_DEVICE_FILE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\C\fast-lzma2\radix_struct.c">
+      <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NO_XXHASH;FL2_7ZIP_BUILD;_DEBUG;WIN32;_CONSOLE;_7ZIP_LARGE_PAGES;SUPPORT_DEVICE_FILE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\C\fast-lzma2\range_enc.c">
+      <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NO_XXHASH;FL2_7ZIP_BUILD;_DEBUG;WIN32;_CONSOLE;_7ZIP_LARGE_PAGES;SUPPORT_DEVICE_FILE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\C\fast-lzma2\util.c">
+      <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NO_XXHASH;FL2_7ZIP_BUILD;_DEBUG;WIN32;_CONSOLE;_7ZIP_LARGE_PAGES;SUPPORT_DEVICE_FILE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <ClCompile Include="..\..\..\..\C\HuffEnc.c">
       <Optimization Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">MaxSpeed</Optimization>
@@ -1649,6 +1707,7 @@
     </ClCompile>
     <ClCompile Include="..\..\Compress\DeflateRegister.cpp" />
     <ClCompile Include="..\..\Compress\DeltaFilter.cpp" />
+    <ClCompile Include="..\..\Compress\FastLzma2Register.cpp" />
     <ClCompile Include="..\..\Compress\ImplodeDecoder.cpp" />
     <ClCompile Include="..\..\Compress\Lzma2Decoder.cpp" />
     <ClCompile Include="..\..\Compress\Lzma2Encoder.cpp" />
@@ -1821,6 +1880,9 @@
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="resource.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\..\..\C\fast-lzma2\lzma_dec_x86_64.asm" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
