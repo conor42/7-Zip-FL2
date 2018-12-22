@@ -213,11 +213,12 @@ STDMETHODIMP CFastEncoder::WriteCoderProperties(ISequentialOutStream *outStream)
 }
 
 
-bool CFastEncoder::UpdateProgress(ICompressProgressInfo *progress, UInt64 outProcessed)
+bool CFastEncoder::UpdateProgress(ICompressProgressInfo *progress)
 {
   if (progress) {
-    UInt64 in_processed = FL2_getCStreamProgress(_encoder);
-    HRESULT err = progress->SetRatioInfo(&in_processed, &outProcessed);
+    UInt64 outProcessed;
+    UInt64 inProcessed = FL2_getCStreamProgress(_encoder, &outProcessed);
+    HRESULT err = progress->SetRatioInfo(&inProcessed, &outProcessed);
     if (err != S_OK) {
       FL2_cancelOperation(_encoder);
       return false;
@@ -230,7 +231,6 @@ STDMETHODIMP CFastEncoder::Code(ISequentialInStream *inStream, ISequentialOutStr
   const UInt64 * /* inSize */, const UInt64 * /* outSize */, ICompressProgressInfo *progress)
 {
   HRESULT err = S_OK;
-  UInt64 outProcessed = 0;
   FL2_outBuffer dict;
   size_t inSize;
   do
@@ -246,7 +246,7 @@ STDMETHODIMP CFastEncoder::Code(ISequentialInStream *inStream, ISequentialOutStr
 
     res = FL2_updateDictionary(_encoder, inSize);
     while (FL2_isTimedOut(res)) {
-      if(!UpdateProgress(progress, outProcessed))
+      if(!UpdateProgress(progress))
         return S_FALSE;
       res = FL2_waitStream(_encoder);
     }
@@ -257,7 +257,6 @@ STDMETHODIMP CFastEncoder::Code(ISequentialInStream *inStream, ISequentialOutStr
     res = FL2_remainingOutputSize(_encoder);
     if (FL2_isError(res))
       return S_FALSE;
-    outProcessed += res;
 
     if (res) do {
       FL2_inBuffer cbuf;
@@ -283,7 +282,7 @@ STDMETHODIMP CFastEncoder::Code(ISequentialInStream *inStream, ISequentialOutStr
     do {
       res = FL2_endStream(_encoder, NULL);
       while (FL2_isTimedOut(res)) {
-        if (!UpdateProgress(progress, outProcessed))
+        if (!UpdateProgress(progress))
           return S_FALSE;
         res = FL2_endStream(_encoder, NULL);
       }
@@ -293,7 +292,6 @@ STDMETHODIMP CFastEncoder::Code(ISequentialInStream *inStream, ISequentialOutStr
       size_t cSize = FL2_remainingOutputSize(_encoder);
       if (FL2_isError(cSize))
         return S_FALSE;
-      outProcessed += cSize;
 
       if(cSize) do {
         FL2_inBuffer cbuf;

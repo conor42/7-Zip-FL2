@@ -50,7 +50,7 @@ class CFastEncoder :
   UInt32 dictSize;
 
 private:
-  bool UpdateProgress(ICompressProgressInfo *progress, UInt64 outProcessed);
+  bool UpdateProgress(ICompressProgressInfo *progress);
 
 public:
   MY_UNKNOWN_IMP3(
