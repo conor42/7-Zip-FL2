@@ -188,6 +188,7 @@ STDMETHODIMP CFastEncoder::SetCoderProperties(const PROPID *propIDs,
   if (lzma2Props.lzmaProps.pb >= 0)
     CHECK_F(FL2_CCtx_setParameter(_encoder, FL2_p_posBits, lzma2Props.lzmaProps.pb));
   FL2_CCtx_setParameter(_encoder, FL2_p_omitProperties, 1);
+  FL2_setCStreamTimeout(_encoder, 500);
   size_t res = FL2_initCStream(_encoder, 0);
   if (FL2_isError(res)) {
     if (FL2_getErrorCode(res) == FL2_error_memory_allocation)
@@ -212,59 +213,94 @@ STDMETHODIMP CFastEncoder::WriteCoderProperties(ISequentialOutStream *outStream)
 }
 
 
+bool CFastEncoder::UpdateProgress(ICompressProgressInfo *progress, UInt64 outProcessed)
+{
+  if (progress) {
+    UInt64 in_processed = FL2_getCStreamProgress(_encoder);
+    HRESULT err = progress->SetRatioInfo(&in_processed, &outProcessed);
+    if (err != S_OK) {
+      FL2_cancelOperation(_encoder);
+      return false;
+    }
+  }
+  return true;
+}
+
 STDMETHODIMP CFastEncoder::Code(ISequentialInStream *inStream, ISequentialOutStream *outStream,
   const UInt64 * /* inSize */, const UInt64 * /* outSize */, ICompressProgressInfo *progress)
 {
   HRESULT err = S_OK;
-  UInt64 out_processed = 0;
+  UInt64 outProcessed = 0;
+  FL2_outBuffer dict;
+  size_t inSize;
   do
   {
-    FL2_outBuffer dict;
-    FL2_getDictionaryBuffer(_encoder, &dict);
-    size_t inSize = dict.size - dict.pos;
+    size_t res = FL2_getDictionaryBuffer(_encoder, &dict);
+    if (FL2_isError(res))
+      return S_FALSE;
+
+    inSize = dict.size - dict.pos;
     err = ReadStream(inStream, (BYTE*)dict.dst + dict.pos, &inSize);
     if (err != S_OK)
       break;
 
-    size_t res = FL2_updateDictionary(_encoder, inSize);
+    res = FL2_updateDictionary(_encoder, inSize);
+    while (FL2_isTimedOut(res)) {
+      if(!UpdateProgress(progress, outProcessed))
+        return S_FALSE;
+      res = FL2_waitStream(_encoder);
+    }
+
     if (FL2_isError(res))
       return S_FALSE;
 
-    if (!res)
-      out_processed += FL2_remainingOutputSize(_encoder);
+    res = FL2_remainingOutputSize(_encoder);
+    if (FL2_isError(res))
+      return S_FALSE;
+    outProcessed += res;
 
-    if (progress && (inSize || !res)) {
-      UInt64 in_processed = FL2_getCStreamProgress(_encoder);
-      err = progress->SetRatioInfo(&in_processed, &out_processed);
-      if (err != S_OK) {
-        FL2_cancelOperation(_encoder);
-        break;
-      }
-    }
-
-    if (!res) do {
+    if (res) do {
       FL2_inBuffer cbuf;
-      if (!FL2_getNextCStreamBuffer(_encoder, &cbuf))
+      res = FL2_getNextCStreamBuffer(_encoder, &cbuf);
+      if (FL2_isError(res))
+        return S_FALSE;
+      if (!res)
         break;
       err = WriteStream(outStream, (BYTE*)cbuf.src + cbuf.pos, cbuf.size - cbuf.pos);
-
     } while (err == S_OK);
 
-    if (inSize < dict.size - dict.pos)
+    if (err != S_OK)
       break;
 
-  } while (err == S_OK);
+  } while (inSize == dict.size - dict.pos);
 
-  if (err == S_OK) {
+  if (err != S_OK) {
+    FL2_cancelOperation(_encoder);
+    return err;
+  }
+  else {
     size_t res;
     do {
       res = FL2_endStream(_encoder, NULL);
+      while (FL2_isTimedOut(res)) {
+        if (!UpdateProgress(progress, outProcessed))
+          return S_FALSE;
+        res = FL2_endStream(_encoder, NULL);
+      }
       if (FL2_isError(res))
         return S_FALSE;
 
-      if(res) do {
+      size_t cSize = FL2_remainingOutputSize(_encoder);
+      if (FL2_isError(cSize))
+        return S_FALSE;
+      outProcessed += cSize;
+
+      if(cSize) do {
         FL2_inBuffer cbuf;
-        if (!FL2_getNextCStreamBuffer(_encoder, &cbuf))
+        cSize = FL2_getNextCStreamBuffer(_encoder, &cbuf);
+        if (FL2_isError(cSize))
+          return S_FALSE;
+        if(!cSize)
           break;
         err = WriteStream(outStream, (BYTE*)cbuf.src + cbuf.pos, cbuf.size - cbuf.pos);
         if (err != S_OK) {

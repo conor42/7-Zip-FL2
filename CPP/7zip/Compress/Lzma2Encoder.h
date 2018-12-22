@@ -49,14 +49,17 @@ class CFastEncoder :
   UInt64 reduceSize;
   UInt32 dictSize;
 
+private:
+  bool UpdateProgress(ICompressProgressInfo *progress, UInt64 outProcessed);
+
 public:
   MY_UNKNOWN_IMP3(
     ICompressCoder,
     ICompressSetCoderProperties,
     ICompressWriteCoderProperties)
 
-    STDMETHOD(Code)(ISequentialInStream *inStream, ISequentialOutStream *outStream,
-      const UInt64 *inSize, const UInt64 *outSize, ICompressProgressInfo *progress);
+  STDMETHOD(Code)(ISequentialInStream *inStream, ISequentialOutStream *outStream,
+    const UInt64 *inSize, const UInt64 *outSize, ICompressProgressInfo *progress);
   STDMETHOD(SetCoderProperties)(const PROPID *propIDs, const PROPVARIANT *props, UInt32 numProps);
   STDMETHOD(WriteCoderProperties)(ISequentialOutStream *outStream);
 
