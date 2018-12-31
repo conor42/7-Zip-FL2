@@ -303,4 +303,7 @@ __pycache__/
 *.btm.cs
 *.odx.cs
 *.xsd.cs
+
 *.7z
+*.exp
+*.lib
