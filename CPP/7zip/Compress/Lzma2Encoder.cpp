@@ -175,12 +175,8 @@ STDMETHODIMP CFastEncoder::SetCoderProperties(const PROPID *propIDs,
   }
   if (lzma2Props.lzmaProps.fb > 0)
     CHECK_F(FL2_CCtx_setParameter(_encoder, FL2_p_fastLength, lzma2Props.lzmaProps.fb));
-  if (lzma2Props.lzmaProps.mc) {
-    unsigned ml = 0;
-    while (((UInt32)1 << ml) < lzma2Props.lzmaProps.mc)
-      ++ml;
-    CHECK_F(FL2_CCtx_setParameter(_encoder, FL2_p_searchLog, ml));
-  }
+  if (lzma2Props.lzmaProps.mc > 0)
+    CHECK_F(FL2_CCtx_setParameter(_encoder, FL2_p_hybridCycles, lzma2Props.lzmaProps.mc));
   if (lzma2Props.lzmaProps.lc >= 0)
     CHECK_F(FL2_CCtx_setParameter(_encoder, FL2_p_literalCtxBits, lzma2Props.lzmaProps.lc));
   if (lzma2Props.lzmaProps.lp >= 0)
