@@ -26,7 +26,7 @@
 #define LZMA2_PROP_UNINITIALIZED 0xFF
 
 
-FL2LIB_API size_t FL2LIB_CALL FL2_findDecompressedSize(const void *src, size_t srcSize)
+FL2LIB_API unsigned long long FL2LIB_CALL FL2_findDecompressedSize(const void *src, size_t srcSize)
 {
     return LZMA2_getUnpackSize(src, srcSize);
 }
@@ -93,74 +93,76 @@ FL2LIB_API FL2_DCtx *FL2LIB_CALL FL2_createDCtxMt(unsigned nbThreads)
 
     FL2_DCtx* const dctx = malloc(sizeof(FL2_DCtx));
 
-    if (dctx != NULL) {
-        LZMA_constructDCtx(&dctx->dec);
+    if (dctx == NULL)
+        return NULL;
 
-        dctx->lzma2prop = LZMA2_PROP_UNINITIALIZED;
+    LZMA_constructDCtx(&dctx->dec);
 
-        nbThreads = FL2_checkNbThreads(nbThreads);
+    dctx->lzma2prop = LZMA2_PROP_UNINITIALIZED;
+
+    nbThreads = FL2_checkNbThreads(nbThreads);
 
 #ifndef FL2_SINGLETHREAD
-        dctx->nbThreads = 1;
+    dctx->nbThreads = 1;
+    dctx->blocks = NULL;
+    dctx->factory = NULL;
 
-        if (nbThreads > 1) {
-            dctx->blocks = malloc(nbThreads * sizeof(BlockDecMt));
-            dctx->factory = FL2POOL_create(nbThreads - 1);
+    if (nbThreads > 1) {
+        dctx->blocks = malloc(nbThreads * sizeof(BlockDecMt));
+        dctx->factory = FL2POOL_create(nbThreads - 1);
 
-            if (dctx->blocks == NULL || dctx->factory == NULL) {
+        if (dctx->blocks == NULL || dctx->factory == NULL) {
+            FL2_freeDCtx(dctx);
+            return NULL;
+        }
+        dctx->blocks[0].dec = &dctx->dec;
+
+        for (; dctx->nbThreads < nbThreads; ++dctx->nbThreads) {
+
+            dctx->blocks[dctx->nbThreads].dec = malloc(sizeof(LZMA2_DCtx));
+
+            if (dctx->blocks[dctx->nbThreads].dec == NULL) {
                 FL2_freeDCtx(dctx);
                 return NULL;
             }
-            dctx->blocks[0].dec = &dctx->dec;
-
-            for (; dctx->nbThreads < nbThreads; ++dctx->nbThreads) {
-
-                dctx->blocks[dctx->nbThreads].dec = malloc(sizeof(LZMA2_DCtx));
-
-                if (dctx->blocks[dctx->nbThreads].dec == NULL) {
-                    FL2_freeDCtx(dctx);
-                    return NULL;
-                }
-                LZMA_constructDCtx(dctx->blocks[dctx->nbThreads].dec);
-            }
+            LZMA_constructDCtx(dctx->blocks[dctx->nbThreads].dec);
         }
-        else {
-            dctx->blocks = NULL;
-            dctx->factory = NULL;
-        }
-#endif
     }
+#endif
+
     return dctx;
 }
 
 FL2LIB_API size_t FL2LIB_CALL FL2_freeDCtx(FL2_DCtx* dctx)
 {
-    if (dctx != NULL) {
-        DEBUGLOG(3, "FL2_freeDCtx");
+    if (dctx == NULL)
+        return FL2_error_no_error;
 
-        LZMA_destructDCtx(&dctx->dec);
+    DEBUGLOG(3, "FL2_freeDCtx");
+
+    LZMA_destructDCtx(&dctx->dec);
 
 #ifndef FL2_SINGLETHREAD
-        if (dctx->blocks != NULL) {
-            for (unsigned thread = 1; thread < dctx->nbThreads; ++thread) {
-                LZMA_destructDCtx(dctx->blocks[thread].dec);
-                free(dctx->blocks[thread].dec);
-            }
-            free(dctx->blocks);
+    if (dctx->blocks != NULL) {
+        for (unsigned thread = 1; thread < dctx->nbThreads; ++thread) {
+            LZMA_destructDCtx(dctx->blocks[thread].dec);
+            free(dctx->blocks[thread].dec);
         }
-        FL2POOL_free(dctx->factory);
-#endif
-        free(dctx);
+        free(dctx->blocks);
     }
-    return 0;
+    FL2POOL_free(dctx->factory);
+#endif
+    free(dctx);
+
+    return FL2_error_no_error;
 }
+
+#ifndef FL2_SINGLETHREAD
 
 FL2LIB_API unsigned FL2LIB_CALL FL2_getDCtxThreadCount(const FL2_DCtx * dctx)
 {
     return (unsigned)dctx->nbThreads;
 }
-
-#ifndef FL2_SINGLETHREAD
 
 /* FL2_decompressCtxBlock() : FL2POOL_function type */
 static void FL2_decompressCtxBlock(void* const jobDescription, ptrdiff_t const n)
@@ -168,8 +170,11 @@ static void FL2_decompressCtxBlock(void* const jobDescription, ptrdiff_t const n
     BlockDecMt* const blocks = (BlockDecMt*)jobDescription;
     size_t srcLen = blocks[n].packSize;
 
+    DEBUGLOG(4, "Thread %u: decoding block of input size %u, output size %u", (unsigned)n, (unsigned)srcLen, (unsigned)blocks[n].unpackSize);
+
     blocks[n].res = LZMA2_decodeToDic(blocks[n].dec, blocks[n].unpackSize, blocks[n].src, &srcLen, blocks[n].finish);
 
+    /* If no error occurred, store into res the dic_pos value, which is the end of the decompressed data in the buffer */
     if (!FL2_isError(blocks[n].res))
         blocks[n].res = blocks[n].dec->dic_pos;
 }
@@ -178,6 +183,7 @@ static size_t FL2_decompressCtxBlocksMt(FL2_DCtx* const dctx, const BYTE *const 
 {
     BlockDecMt* const blocks = dctx->blocks;
 
+    /* Initial check for block 0. The others are uncalculated */
     if (dstCapacity < blocks[0].unpackSize)
         return FL2_ERROR(dstSize_tooSmall);
 
@@ -196,8 +202,10 @@ static size_t FL2_decompressCtxBlocksMt(FL2_DCtx* const dctx, const BYTE *const 
     if (dstCapacity < blocks[nbThreads - 1].unpackPos + blocks[nbThreads - 1].unpackSize)
         return FL2_ERROR(dstSize_tooSmall);
 
+    /* Decompress thread 1..n */
     FL2POOL_addRange(dctx->factory, FL2_decompressCtxBlock, blocks, 1, nbThreads);
 
+    /* Decompress thread 0 */
     CHECK_F(LZMA2_initDecoder(blocks[0].dec, prop, dst + blocks[0].unpackPos, blocks[0].unpackSize));
     FL2_decompressCtxBlock(blocks, 0);
 
@@ -221,6 +229,7 @@ static void FL2_resetMtBlocks(FL2_DCtx* const dctx)
     }
 }
 
+/* Decompress an entire stream stored in memory */
 static size_t FL2_decompressDCtxMt(FL2_DCtx* const dctx,
     void* dst, size_t dstCapacity,
     const void* src, size_t *const srcLen)
@@ -237,15 +246,24 @@ static size_t FL2_decompressDCtxMt(FL2_DCtx* const dctx,
     while (pos < srcSize) {
         LZMA2_chunk inf;
         int type = LZMA2_parseInput(src, pos, srcSize - pos, &inf);
+
+        /* All src data must be in memory so CHUNK_MORE_DATA is an error */
         if (type == CHUNK_ERROR || type == CHUNK_MORE_DATA)
             return FL2_ERROR(corruption_detected);
+
+        /* CHUNK_DICT_RESET is used to signal block completion except for pos 0 */
         if (pos == 0 && type == CHUNK_DICT_RESET)
             type = CHUNK_CONTINUE;
+
         if (type == CHUNK_DICT_RESET || type == CHUNK_FINAL) {
             if (type == CHUNK_FINAL) {
+                /* The finish value will be passed to the decoder */
                 blocks[thread].finish = LZMA_FINISH_END;
+                /* CHUNK_FINAL means a single 0 byte */
+                assert(inf.pack_size == 1);
                 ++blocks[thread].packSize;
             }
+            /* Move to the next thread. Decoding will begin if all threads are used. */
             ++thread;
         }
         if (type == CHUNK_FINAL || (type == CHUNK_DICT_RESET && thread == dctx->nbThreads)) {
@@ -254,12 +272,15 @@ static size_t FL2_decompressDCtxMt(FL2_DCtx* const dctx,
                 return res;
 
             unpackSize += res;
+            /* Store the unpack size in decoder 0 where it would be in single thread */
             dctx->dec.dic_pos = unpackSize;
+            /* Input used is the end of data consumed by the last thread */
             *srcLen += blocks[thread - 1].packPos + blocks[thread - 1].packSize;
 
             if (type == CHUNK_FINAL)
-                return LZMA_STATUS_FINISHED_WITH_MARK;
+                return LZMA_STATUS_FINISHED;
 
+            /* Only excecuted at a dict reset. pos is the location of the reset */
             src = (BYTE*)src + pos;
             srcSize -= pos;
             dst = (BYTE*)dst + res;
@@ -270,6 +291,7 @@ static size_t FL2_decompressDCtxMt(FL2_DCtx* const dctx,
             FL2_resetMtBlocks(dctx);
         }
         else {
+            /* Not the end or a dict reset, so add it to the current block */
             blocks[thread].packSize += inf.pack_size;
             blocks[thread].unpackSize += inf.unpack_size;
             pos += inf.pack_size;
@@ -284,6 +306,7 @@ FL2LIB_API size_t FL2LIB_CALL FL2_initDCtx(FL2_DCtx * dctx, unsigned char prop)
 {
     if((prop & FL2_LZMA_PROP_MASK) > 40)
         return FL2_ERROR(corruption_detected);
+
     dctx->lzma2prop = prop;
     return FL2_error_no_error;
 }
@@ -331,6 +354,7 @@ FL2LIB_API size_t FL2LIB_CALL FL2_decompressDCtx(FL2_DCtx* dctx,
 
     if (FL2_isError(res))
         return res;
+    /* All src data must be in memory */
     if (res == LZMA_STATUS_NEEDS_MORE_INPUT)
         return FL2_ERROR(srcSize_wrong);
 
@@ -345,6 +369,7 @@ FL2LIB_API size_t FL2LIB_CALL FL2_decompressDCtx(FL2_DCtx* dctx,
 
         if (srcSize - srcPos < XXHASH_SIZEOF)
             return FL2_ERROR(srcSize_wrong);
+
         memcpy(&canonical, srcBuf + srcPos, XXHASH_SIZEOF);
         hash = XXH32_hashFromCanonical(&canonical);
         if (hash != XXH32(dst, dicPos, 0))
@@ -354,16 +379,20 @@ FL2LIB_API size_t FL2LIB_CALL FL2_decompressDCtx(FL2_DCtx* dctx,
     return dicPos;
 }
 
+/*===== Streaming decompression functions =====*/
+
 typedef enum
 {
     FL2DEC_STAGE_INIT,
-    FL2DEC_STAGE_MT_PARSE,
     FL2DEC_STAGE_DECOMP,
+#ifndef FL2_SINGLETHREAD
     FL2DEC_STAGE_MT_WRITE,
+#endif
     FL2DEC_STAGE_HASH,
     FL2DEC_STAGE_FINISHED
 } FL2_decStage;
 
+#ifndef FL2_SINGLETHREAD
 typedef struct FL2_decInbuf_s FL2_decInbuf;
 
 struct FL2_decInbuf_s
@@ -403,22 +432,24 @@ typedef struct
     size_t srcPos;
     size_t memTotal;
     size_t memLimit;
-    int isFinal;
-    int failState;
+    BYTE isFinal;
+    BYTE failState;
+    BYTE canceled;
     BYTE prop;
 #ifndef NO_XXHASH
     XXH32_canonical_t hash;
 #endif
     FL2_decJob threads[1];
 } FL2_decMt;
+#endif
 
 struct FL2_DStream_s
 {
 #ifndef FL2_SINGLETHREAD
     FL2_decMt *decmt;
+    FL2POOL_ctx* decompressThread;
 #endif
     LZMA2_DCtx dec;
-    FL2POOL_ctx* decompressThread;
     FL2_outBuffer* asyncOutput;
     FL2_inBuffer* asyncInput;
     size_t asyncRes;
@@ -434,8 +465,37 @@ struct FL2_DStream_s
     BYTE wait;
 };
 
+static size_t FL2_decompressInput(FL2_DStream* fds, FL2_outBuffer* output, FL2_inBuffer* input)
+{
+    if (fds->stage == FL2DEC_STAGE_DECOMP) {
+        size_t destSize = output->size - output->pos;
+        size_t srcSize = input->size - input->pos;
+        size_t const res = LZMA2_decodeToBuf(&fds->dec, (BYTE*)output->dst + output->pos, &destSize, (const BYTE*)input->src + input->pos, &srcSize, LZMA_FINISH_ANY);
+
+        DEBUGLOG(5, "Decoded %u bytes", (U32)destSize);
+
+#ifndef NO_XXHASH
+        if (fds->doHash)
+            XXH32_update(fds->xxh, (BYTE*)output->dst + output->pos, destSize);
+#endif
+        FL2_atomic_add(fds->progress, (long)destSize);
+
+        output->pos += destSize;
+        input->pos += srcSize;
+
+        if (FL2_isError(res))
+            return res;
+        if (res == LZMA_STATUS_FINISHED) {
+            DEBUGLOG(4, "Found end mark");
+            fds->stage = fds->doHash ? FL2DEC_STAGE_HASH : FL2DEC_STAGE_FINISHED;
+        }
+    }
+    return FL2_error_no_error;
+}
+
 #ifndef FL2_SINGLETHREAD
 
+/* Free buffer nodes from node to the end, except keep */
 static void LZMA2_freeInbufNodeChain(FL2_decMt *const decmt, FL2_decInbuf *node, FL2_decInbuf *const keep)
 {
     while (node) {
@@ -451,6 +511,7 @@ static void LZMA2_freeInbufNodeChain(FL2_decMt *const decmt, FL2_decInbuf *node,
     }
 }
 
+/* Free all buffer nodes except the head */
 static void LZMA2_freeExtraInbufNodes(FL2_decMt *const decmt)
 {
     LZMA2_freeInbufNodeChain(decmt, decmt->head->next, NULL);
@@ -469,6 +530,14 @@ static void FL2_FreeOutputBuffers(FL2_decMt *const decmt)
     decmt->numThreads = 0;
 }
 
+static void FL2_Lzma2DecMt_Cleanup(FL2_decMt *const decmt)
+{
+    if (decmt) {
+        FL2_FreeOutputBuffers(decmt);
+        LZMA2_freeExtraInbufNodes(decmt);
+    }
+}
+
 static void FL2_Lzma2DecMt_Free(FL2_decMt *const decmt)
 {
     if (decmt) {
@@ -485,6 +554,7 @@ static void FL2_Lzma2DecMt_Init(FL2_decMt *const decmt)
         decmt->cur = NULL;
         decmt->failState = 0;
         decmt->isFinal = 0;
+        decmt->canceled = 0;
         decmt->memTotal = 0;
         FL2_FreeOutputBuffers(decmt);
         LZMA2_freeExtraInbufNodes(decmt);
@@ -500,7 +570,7 @@ static int FL2_Lzma2DecMt_InitProp(FL2_decMt *const decmt, BYTE prop)
 {
     decmt->prop = prop;
     size_t const dictSize = LZMA2_getDictSizeFromProp(prop);
-    /* Minimum memory is two threads, one dict size per thread plus a minimal amount of
+    /* Minimum memory is for two threads, one dict size per thread plus a minimal amount of
      * compressed data for each. Compression to < 1/6 is uncommon. */
     if (decmt->memLimit < (dictSize + dictSize / 6U) * 2U) {
         DEBUGLOG(3, "Using ST decompression due to dict size %u, memory limit %u", (unsigned)dictSize, (unsigned)decmt->memLimit);
@@ -523,6 +593,7 @@ static FL2_decInbuf * LZMA2_createInbufNode(FL2_decMt *const decmt, FL2_decInbuf
     node->next = NULL;
     node->length = 0;
     if (prev) {
+        /* Node buffers overlap by LZMA_REQUIRED_INPUT_MAX */
         memcpy(node->inBuf, prev->inBuf + prev->length - LZMA_REQUIRED_INPUT_MAX, LZMA_REQUIRED_INPUT_MAX);
         prev->next = node;
         node->length = LZMA_REQUIRED_INPUT_MAX;
@@ -541,6 +612,7 @@ static FL2_decMt *FL2_Lzma2DecMt_Create(unsigned maxThreads)
     decmt->memTotal = 0;
     decmt->memLimit = (size_t)1 << 29;
 
+    /* The head always exists and is only freed on deallocation */
     decmt->head = LZMA2_createInbufNode(decmt, NULL);
     if (decmt->head == NULL) {
         free(decmt);
@@ -565,6 +637,10 @@ static FL2_decMt *FL2_Lzma2DecMt_Create(unsigned maxThreads)
     return decmt;
 }
 
+/* Read chunk headers and advance inBlock->endPos to the next chunk
+ * until it points beyond the available data.
+ * Add the size of each chunk to inBlock->unpackSize
+ */
 static LZMA2_parseRes FL2_ParseMt(FL2_decBlock* const inBlock)
 {
     LZMA2_parseRes res = CHUNK_MORE_DATA;
@@ -587,47 +663,69 @@ static LZMA2_parseRes FL2_ParseMt(FL2_decBlock* const inBlock)
 
         first = 0;
     }
+    /* Skip the 1-byte end marker if found */
     inBlock->endPos += (res == CHUNK_FINAL);
     return res;
 }
 
+/* Decompress an entire block starting with a dict reset and ending with
+ * the last chunk before the next dict reset, or the terminator.
+ * The input is a chain of buffers.
+ */
 static size_t FL2_decompressBlockMt(FL2_DStream* const fds, size_t const thread)
 {
     FL2_decMt *const decmt = fds->decmt;
     FL2_decJob *const ti = &decmt->threads[thread];
     LZMA2_DCtx *const dec = &ti->dec;
 
+    DEBUGLOG(4, "Thread %u: decoding block of size %u", (unsigned)thread, (unsigned)ti->bufSize);
+
     CHECK_F(LZMA2_initDecoder(dec, decmt->prop, ti->outBuf, ti->bufSize));
 
+    /* Input buffer node containing the starting chunk. If thread > 0 this is usually
+     * the last input buffer node of the previous thread. */
     FL2_decInbuf *cur = ti->inBlock.first;
+    /* Position of the starting chunk. */
     size_t inPos = ti->inBlock.startPos;
-    int const last = decmt->isFinal && (thread == decmt->numThreads - 1);
+    /* Flag to indicate this block ends with the terminator */
+    BYTE const last = decmt->isFinal && (thread == decmt->numThreads - 1);
 
-    while (1) {
+    while (!decmt->canceled) {
         size_t srcSize = cur->length - inPos;
         size_t const dicPos = dec->dic_pos;
 
-        size_t const res = LZMA2_decodeToDic(dec, ti->bufSize, cur->inBuf + inPos, &srcSize, last && cur == ti->inBlock.last ? LZMA_FINISH_END : LZMA_FINISH_ANY);
+        size_t const res = LZMA2_decodeToDic(dec,
+            ti->bufSize,
+            cur->inBuf + inPos, &srcSize,
+            last && cur == ti->inBlock.last ? LZMA_FINISH_END : LZMA_FINISH_ANY);
 
         CHECK_F(res);
 
         FL2_atomic_add(fds->progress, (long)(dec->dic_pos - dicPos));
 
-        if (res == LZMA_STATUS_FINISHED_WITH_MARK) {
+        if (res == LZMA_STATUS_FINISHED)
             DEBUGLOG(4, "Found end mark");
-        }
+
         if (cur == ti->inBlock.last)
             break;
 
+        /* Advance the position and switch to the next input buffer in the chain if necessary */
         inPos += srcSize;
         if (inPos + LZMA_REQUIRED_INPUT_MAX >= cur->length) {
             inPos -= cur->length - LZMA_REQUIRED_INPUT_MAX;
             cur = cur->next;
         }
     }
-    return 0;
+
+    if (decmt->canceled)
+        return FL2_ERROR(canceled);
+
+    return FL2_error_no_error;
 }
 
+/*
+ * Write the data from the output buffer of each thread.
+ */
 static size_t FL2_writeStreamBlocks(FL2_DStream* const fds, FL2_outBuffer* const output)
 {
     FL2_decMt *const decmt = fds->decmt;
@@ -667,40 +765,49 @@ static void FL2_decompressBlock(void* const jobDescription, ptrdiff_t const n)
 
 static size_t FL2_decompressBlocksMt(FL2_DStream* const fds)
 {
+    /* Set the threads to work on the blocks */
     FL2_decMt * const decmt = fds->decmt;
-    FL2POOL_addRange(fds->decmt->factory, FL2_decompressBlock, fds, 1, fds->decmt->numThreads);
+    FL2POOL_addRange(decmt->factory, FL2_decompressBlock, fds, 1, decmt->numThreads);
 
-    fds->decmt->threads[0].res = FL2_decompressBlockMt(fds, 0);
+    /* Do block 0 in the main thread */
+    decmt->threads[0].res = FL2_decompressBlockMt(fds, 0);
     FL2POOL_waitAll(fds->decmt->factory, 0);
 
-    if (decmt->numThreads > 0) {
-        FL2_decInbuf *const keep = decmt->threads[decmt->numThreads - 1].inBlock.last;
-        LZMA2_freeInbufNodeChain(decmt, decmt->head, keep);
-        decmt->head = keep;
-        decmt->threads[0].inBlock.first = keep;
-        decmt->threads[0].inBlock.last = keep;
-        decmt->threads[0].inBlock.endPos = decmt->threads[decmt->numThreads - 1].inBlock.endPos;
-        decmt->threads[0].inBlock.startPos = decmt->threads[0].inBlock.endPos;
-        decmt->threads[0].inBlock.unpackSize = 0;
-    }
+    /* Free all input buffers except the last */
+    FL2_decInbuf *const keep = decmt->threads[decmt->numThreads - 1].inBlock.last;
+    LZMA2_freeInbufNodeChain(decmt, decmt->head, keep);
+    /* The last becomes the new head */
+    decmt->head = keep;
+    decmt->threads[0].inBlock.first = keep;
+    decmt->threads[0].inBlock.last = keep;
+    /* Initialize the start and end to the next chunk */
+    decmt->threads[0].inBlock.endPos = decmt->threads[decmt->numThreads - 1].inBlock.endPos;
+    decmt->threads[0].inBlock.startPos = decmt->threads[0].inBlock.endPos;
+    decmt->threads[0].inBlock.unpackSize = 0;
 
-    for (size_t thread = 0; thread < fds->decmt->numThreads; ++thread)
-        if (FL2_isError(fds->decmt->threads[thread].res))
-        return fds->decmt->threads[thread].res;
+    for (size_t thread = 0; thread < decmt->numThreads; ++thread)
+        if (FL2_isError(decmt->threads[thread].res))
+            return decmt->threads[thread].res;
 
-    fds->decmt->srcThread = 0;
-    fds->decmt->srcPos = 0;
+    decmt->srcThread = 0;
+    decmt->srcPos = 0;
 
-    return 0;
+    return FL2_error_no_error;
 }
 
-/* This function must never split the hash value between two buffers, as it always rewinds input->pos 
- * to leave the hash in the input. On a valid stream it always encounters the terminator before the hash,
- * which halts reading from the input. Rewinding is handled before return. */
+/* Read input into the buffer chain, adding new nodes when necessary. 
+ * The chunks in each buffer are parsed before a new buffer is allocated.
+ * No new buffers will be allocated after the terminator is encountered.
+ * Returns 1 if the terminator was found or enough work exists for all threads,
+ * 0 if input is empty,
+ * or FL2_error_corruption_detected, or FL2_error_memory_allocation.
+ * The memory limit is enforced by returning FL2_error_memory_allocation.
+ */
 static size_t FL2_LoadInputMt(FL2_decMt *const decmt, FL2_inBuffer* const input)
 {
     FL2_decBlock *inBlock = &decmt->threads[decmt->numThreads].inBlock;
     LZMA2_parseRes res = CHUNK_CONTINUE;
+    /* Continue while input is available or the parse pos is not beyond the end */
     while (input->pos < input->size || inBlock->endPos < inBlock->last->length) {
         if (inBlock->endPos < inBlock->last->length) {
             res = FL2_ParseMt(inBlock);
@@ -709,6 +816,8 @@ static size_t FL2_LoadInputMt(FL2_decMt *const decmt, FL2_inBuffer* const input)
                 return FL2_ERROR(corruption_detected);
 
             if (res == CHUNK_DICT_RESET || res == CHUNK_FINAL) {
+                /* We have a complete series of chunks starting from a dict reset and
+                 * ending with another reset or the terminator. Set up the thread job. */
                 FL2_decJob * const done = decmt->threads + decmt->numThreads;
 
                 done->bufSize = done->inBlock.unpackSize;
@@ -716,24 +825,31 @@ static size_t FL2_LoadInputMt(FL2_decMt *const decmt, FL2_inBuffer* const input)
                 if(decmt->memTotal > decmt->memLimit)
                     return FL2_ERROR(memory_allocation);
 
+                /* Decompressed data will be stored in outBuf */
                 done->outBuf = malloc(done->bufSize);
-
                 if (!done->outBuf)
                     return FL2_ERROR(memory_allocation);
 
                 decmt->isFinal = (res == CHUNK_FINAL);
                 if (decmt->isFinal) {
+                    /* Set up variables for reading data beyond the terminator. Currently only the hash may be written there. */
                     decmt->cur = inBlock->last;
                     decmt->curPos = inBlock->endPos;
+                    /* If it's within the overlap region, switch to the next buffer. */
                     if (inBlock->last->length - decmt->curPos <= LZMA_REQUIRED_INPUT_MAX && decmt->cur->next != NULL) {
                         decmt->cur = decmt->cur->next;
                         decmt->curPos -= LZMA2_MT_INPUT_SIZE - LZMA_REQUIRED_INPUT_MAX;
                     }
                 }
                 ++decmt->numThreads;
-                if (decmt->numThreads == decmt->maxThreads || res == CHUNK_FINAL)
+                if (decmt->numThreads == decmt->maxThreads || decmt->isFinal) {
+                    /* rewind input in case data beyond terminator was read. Required for container formats */
+                    size_t rewind = MIN(input->pos, inBlock->last->length - inBlock->endPos);
+                    input->pos -= rewind;
+                    inBlock->last->length -= rewind;
                     return 1;
-
+                }
+                /* Set up the start of the next series of chunks. The first buffer is the last of the those already loaded. */
                 inBlock = &decmt->threads[decmt->numThreads].inBlock;
                 inBlock->first = done->inBlock.last;
                 inBlock->last = inBlock->first;
@@ -743,13 +859,14 @@ static size_t FL2_LoadInputMt(FL2_decMt *const decmt, FL2_inBuffer* const input)
             }
         }
         if (inBlock->last->length >= LZMA2_MT_INPUT_SIZE && inBlock->endPos + LZMA_REQUIRED_INPUT_MAX >= inBlock->last->length) {
+            /* Create a new buffer if endPos is within the overlap region. The function copies the overlap. */
             FL2_decInbuf *const next = LZMA2_createInbufNode(decmt, inBlock->last);
             if (!next)
                 return FL2_ERROR(memory_allocation);
             inBlock->last = next;
             inBlock->endPos -= LZMA2_MT_INPUT_SIZE - LZMA_REQUIRED_INPUT_MAX;
         }
-
+        /* Read as much input as possible */
         size_t toread = MIN(input->size - input->pos, LZMA2_MT_INPUT_SIZE - inBlock->last->length);
         memcpy(inBlock->last->inBuf + inBlock->last->length, (BYTE*)input->src + input->pos, toread);
         inBlock->last->length += toread;
@@ -759,37 +876,13 @@ static size_t FL2_LoadInputMt(FL2_decMt *const decmt, FL2_inBuffer* const input)
         if (res == CHUNK_MORE_DATA && toread == 0)
             break;
     }
-    return res == CHUNK_FINAL;
-}
-
-static size_t FL2_decompressInput(FL2_DStream* fds, FL2_outBuffer* output, FL2_inBuffer* input)
-{
-    if (fds->stage == FL2DEC_STAGE_DECOMP) {
-        size_t destSize = output->size - output->pos;
-        size_t srcSize = input->size - input->pos;
-        size_t const res = LZMA2_decodeToBuf(&fds->dec, (BYTE*)output->dst + output->pos, &destSize, (const BYTE*)input->src + input->pos, &srcSize, LZMA_FINISH_ANY);
-
-        DEBUGLOG(5, "Decoded %u bytes", (U32)destSize);
-
-#ifndef NO_XXHASH
-        if (fds->doHash)
-            XXH32_update(fds->xxh, (BYTE*)output->dst + output->pos, destSize);
-#endif
-        FL2_atomic_add(fds->progress, (long)destSize);
-
-        output->pos += destSize;
-        input->pos += srcSize;
-
-        if (FL2_isError(res))
-            return res;
-        if (res == LZMA_STATUS_FINISHED_WITH_MARK) {
-            DEBUGLOG(4, "Found end mark");
-            fds->stage = fds->doHash ? FL2DEC_STAGE_HASH : FL2DEC_STAGE_FINISHED;
-        }
-    }
     return FL2_error_no_error;
 }
 
+/* Handle MT buffer allocation failure.
+ * Decompress input from the MT buffer chain
+ * until it is possible to switch to the caller's input buffer
+ */
 static size_t FL2_decompressFailedMt(FL2_DStream* const fds, FL2_outBuffer* const output, FL2_inBuffer* const input)
 {
     FL2_decMt *const decmt = fds->decmt;
@@ -798,6 +891,8 @@ static size_t FL2_decompressFailedMt(FL2_DStream* const fds, FL2_outBuffer* cons
         return FL2_decompressInput(fds, output, input);
 
     if (!decmt->failState) {
+        /* On first call of this function, free any output buffers already allocated,
+         * and set up the read position in the input buffer chain. The main thread's decoder needs initialization too. */
         DEBUGLOG(3, "Switching to ST decompression. Memory: %u, limit %u", (unsigned)decmt->memTotal, (unsigned)decmt->memLimit);
         FL2_FreeOutputBuffers(decmt);
         decmt->cur = decmt->threads[0].inBlock.first;
@@ -822,9 +917,10 @@ static size_t FL2_decompressFailedMt(FL2_DStream* const fds, FL2_outBuffer* cons
     decmt->curPos = temp.pos;
     if (temp.pos + LZMA_REQUIRED_INPUT_MAX >= temp.size) {
         if (cur->next == NULL) {
+            /* The last buffer in the chain */
             size_t rem = temp.size - temp.pos;
             if (rem > extra) {
-                /* Data remains to be processed, so move it to the start to allow
+                /* Buffered data remains to be processed, so move it to the start to allow
                  * another 20 bytes to be read. This will not happen again unless the
                  * caller passes <20 bytes on the next call and the terminator is not encountered. */
                 rem -= extra;
@@ -833,6 +929,7 @@ static size_t FL2_decompressFailedMt(FL2_DStream* const fds, FL2_outBuffer* cons
                 cur->length = rem;
             }
             else {
+                /* Done with buffered data. Set the input pos and switch to normal ST decoding */
                 input->pos += extra - rem;
                 decmt->cur = NULL;
             }
@@ -852,13 +949,20 @@ static size_t FL2_decompressStreamMt(FL2_DStream* const fds, FL2_outBuffer* cons
 {
     FL2_decMt *const decmt = fds->decmt;
 
+    /* failState is set if the memory limit was hit or allocation failed */
     if(decmt->failState)
         return FL2_decompressFailedMt(fds, output, input);
+
     if (fds->stage == FL2DEC_STAGE_DECOMP) {
+        /* Allocate and fill the input buffer chain */
         size_t const res = FL2_LoadInputMt(decmt, input);
+
+        /* Failover if allocation failed */
         if (FL2_getErrorCode(res) == FL2_error_memory_allocation)
             return FL2_decompressFailedMt(fds, output, input);
         CHECK_F(res);
+
+        /* res > 0 means all threads have input or the terminator was encountered */
         if (res > 0) {
             CHECK_F(FL2_decompressBlocksMt(fds));
             fds->stage = FL2DEC_STAGE_MT_WRITE;
@@ -871,7 +975,8 @@ static size_t FL2_decompressStreamMt(FL2_DStream* const fds, FL2_outBuffer* cons
     }
     return fds->stage != FL2DEC_STAGE_FINISHED;
 }
-#endif
+
+#endif /* FL2_SINGLETHREAD */
 
 FL2LIB_API FL2_DStream* FL2LIB_CALL FL2_createDStream(void)
 {
@@ -888,13 +993,13 @@ FL2LIB_API FL2_DStream *FL2LIB_CALL FL2_createDStreamMt(unsigned nbThreads)
 
         nbThreads = FL2_checkNbThreads(nbThreads);
 
-        fds->decompressThread = NULL;
         fds->asyncRes = 0;
         fds->streamTotal = 0;
         fds->progress = 0;
         fds->timeout = 0;
 
 #ifndef FL2_SINGLETHREAD
+        fds->decompressThread = NULL;
         fds->decmt = (nbThreads > 1) ? FL2_Lzma2DecMt_Create(nbThreads) : NULL;
 #endif
 
@@ -915,8 +1020,8 @@ FL2LIB_API size_t FL2LIB_CALL FL2_freeDStream(FL2_DStream* fds)
     if (fds != NULL) {
         DEBUGLOG(3, "FL2_freeDStream");
         LZMA_destructDCtx(&fds->dec);
-        FL2POOL_free(fds->decompressThread);
 #ifndef FL2_SINGLETHREAD
+        FL2POOL_free(fds->decompressThread);
         FL2_Lzma2DecMt_Free(fds->decmt);
 #endif
 #ifndef NO_XXHASH
@@ -929,11 +1034,12 @@ FL2LIB_API size_t FL2LIB_CALL FL2_freeDStream(FL2_DStream* fds)
 
 FL2LIB_API void FL2LIB_CALL FL2_setDStreamMemoryLimitMt(FL2_DStream * fds, size_t limit)
 {
+#ifndef FL2_SINGLETHREAD
     if (fds->decmt != NULL)
         fds->decmt->memLimit = limit;
+#endif
 }
 
-/*===== Streaming decompression functions =====*/
 FL2LIB_API size_t FL2LIB_CALL FL2_initDStream(FL2_DStream* fds)
 {
     DEBUGLOG(4, "FL2_initDStream");
@@ -955,6 +1061,8 @@ FL2LIB_API size_t FL2LIB_CALL FL2_initDStream(FL2_DStream* fds)
 
 FL2LIB_API size_t FL2LIB_CALL FL2_setDStreamTimeout(FL2_DStream * fds, unsigned timeout)
 {
+#ifndef FL2_SINGLETHREAD
+    /* decompressThread is only used if a timeout is specified */
     if (timeout != 0) {
         if (fds->decompressThread == NULL) {
             fds->decompressThread = FL2POOL_create(1);
@@ -968,16 +1076,32 @@ FL2LIB_API size_t FL2LIB_CALL FL2_setDStreamTimeout(FL2_DStream * fds, unsigned 
         fds->decompressThread = NULL;
     }
     fds->timeout = timeout;
-
+#endif
     return FL2_error_no_error;
 }
 
 FL2LIB_API size_t FL2LIB_CALL FL2_waitDStream(FL2_DStream * fds)
 {
+#ifndef FL2_SINGLETHREAD
     if (FL2POOL_waitAll(fds->decompressThread, fds->timeout) != 0)
         return FL2_ERROR(timedOut);
-
+#endif
+    /* decompressThread writes the result into asyncRes before sleeping */
     return fds->asyncRes;
+}
+
+FL2LIB_API void FL2LIB_CALL FL2_cancelDStream(FL2_DStream *fds)
+{
+#ifndef FL2_SINGLETHREAD
+    if (fds->decompressThread != NULL) {
+        fds->decmt->canceled = 1;
+
+        FL2POOL_waitAll(fds->decompressThread, 0);
+
+        fds->decmt->canceled = 0;
+    }
+    FL2_Lzma2DecMt_Cleanup(fds->decmt);
+#endif
 }
 
 FL2LIB_API unsigned long long FL2LIB_CALL FL2_getDStreamProgress(const FL2_DStream * fds)
@@ -990,6 +1114,7 @@ static size_t FL2_initDStream_prop(FL2_DStream* const fds, BYTE prop)
     fds->doHash = prop >> FL2_PROP_HASH_BIT;
     prop &= FL2_LZMA_PROP_MASK;
 
+    /* If MT decoding is enabled and the dict is not too large, decoder init will occur elsewhere */
 #ifndef FL2_SINGLETHREAD
     if (fds->decmt == NULL || FL2_Lzma2DecMt_InitProp(fds->decmt, prop))
 #endif
@@ -1019,7 +1144,9 @@ FL2LIB_API size_t FL2LIB_CALL FL2_initDStream_withProp(FL2_DStream* fds, unsigne
 
 static size_t FL2_decompressStream_blocking(FL2_DStream* fds, FL2_outBuffer* output, FL2_inBuffer* input)
 {
+#ifndef FL2_SINGLETHREAD
     FL2_decMt *const decmt = fds->decmt;
+#endif
     size_t const prevOut = output->pos;
     size_t const prevIn = input->pos;
 
@@ -1035,12 +1162,18 @@ static size_t FL2_decompressStream_blocking(FL2_DStream* fds, FL2_outBuffer* out
             fds->stage = FL2DEC_STAGE_DECOMP;
         }
 #ifndef FL2_SINGLETHREAD
-        if (decmt)
-            CHECK_F(FL2_decompressStreamMt(fds, output, input));
+        if (decmt) {
+            size_t res = FL2_decompressStreamMt(fds, output, input);
+            if (FL2_isError(res)) {
+                FL2_Lzma2DecMt_Cleanup(decmt);
+                return res;
+            }
+        }
         else
 #endif
+        {
             CHECK_F(FL2_decompressInput(fds, output, input));
-
+        }
         if (fds->stage == FL2DEC_STAGE_HASH) {
 #ifndef NO_XXHASH
             XXH32_canonical_t canonical;
@@ -1050,7 +1183,8 @@ static size_t FL2_decompressStream_blocking(FL2_DStream* fds, FL2_outBuffer* out
             DEBUGLOG(4, "Checking hash");
 
 #ifndef FL2_SINGLETHREAD
-            if (decmt && decmt->cur) {
+            if (decmt && decmt->cur != NULL) {
+                /* Data remains in an MT input buffer */
                 avail += decmt->cur->length - decmt->curPos;
             }
 #endif
@@ -1058,6 +1192,7 @@ static size_t FL2_decompressStream_blocking(FL2_DStream* fds, FL2_outBuffer* out
                 size_t pos = 0;
 #ifndef FL2_SINGLETHREAD
                 if (decmt && decmt->cur) {
+                    /* Must copy buffered data before using input */
                     pos = decmt->cur->length - decmt->curPos;
                     memcpy(canonical.digest, decmt->cur->inBuf + decmt->curPos, pos);
                     decmt->curPos += pos;
@@ -1077,6 +1212,7 @@ static size_t FL2_decompressStream_blocking(FL2_DStream* fds, FL2_outBuffer* out
         }
     }
     if (fds->stage != FL2DEC_STAGE_FINISHED && prevOut == output->pos && prevIn == input->pos) {
+        /* No progress was made */
         ++fds->loopCount;
         if (fds->loopCount > 2)
             return FL2_ERROR(buffer);
@@ -1084,7 +1220,16 @@ static size_t FL2_decompressStream_blocking(FL2_DStream* fds, FL2_outBuffer* out
     else {
         fds->loopCount = 0;
     }
-    return fds->stage != FL2DEC_STAGE_FINISHED;
+
+    if (fds->stage == FL2DEC_STAGE_FINISHED) {
+#ifndef FL2_SINGLETHREAD
+        FL2_Lzma2DecMt_Cleanup(decmt);
+#endif
+        return 0;
+    }
+    else {
+        return 1;
+    }
 }
 
 /* FL2_decompressStream_async() : FL2POOL_function type */
@@ -1103,23 +1248,35 @@ FL2LIB_API size_t FL2LIB_CALL FL2_decompressStream(FL2_DStream* fds, FL2_outBuff
     fds->streamTotal += fds->progress;
     fds->progress = 0;
 
+#ifndef FL2_SINGLETHREAD
     if (fds->decompressThread != NULL) {
+        /* Calling FL2_decompressStream() while waiting for decompressThread to fall idle is not allowed */
         if (fds->wait)
             return FL2_ERROR(stage_wrong);
+
         fds->asyncOutput = output;
         fds->asyncInput = input;
+        /* FL2_decompressStream_async will reset fds->wait upon completion */
         fds->wait = 1;
+
         FL2POOL_add(fds->decompressThread, FL2_decompressStream_async, fds, 0);
+
+        /* Wait for completion or a timeout */
         CHECK_F(FL2_waitDStream(fds));
+
+        /* FL2_decompressStream_async() stores result in asyncRes */
         return fds->asyncRes;
     }
-    else {
+    else
+#endif
+    {
         return FL2_decompressStream_blocking(fds, output, input);
     }
 }
 
 FL2LIB_API size_t FL2LIB_CALL FL2_estimateDCtxSize(unsigned nbThreads)
 {
+    nbThreads = FL2_checkNbThreads(nbThreads);
     if (nbThreads > 1)
         return nbThreads * (sizeof(BlockDecMt) + sizeof(FL2_DCtx));
 
@@ -1128,6 +1285,7 @@ FL2LIB_API size_t FL2LIB_CALL FL2_estimateDCtxSize(unsigned nbThreads)
 
 FL2LIB_API size_t FL2LIB_CALL FL2_estimateDStreamSize(size_t dictSize, unsigned nbThreads)
 {
+    nbThreads = FL2_checkNbThreads(nbThreads);
     if (nbThreads > 1) {
         /* Estimate 50% compression and a block size of 4 * dictSize */
         return nbThreads * sizeof(FL2_DCtx) + (dictSize + dictSize / 2) * 4 * nbThreads;

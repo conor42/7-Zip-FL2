@@ -174,7 +174,7 @@
       <PreprocessorDefinitions>NDEBUG;WIN32;_CONSOLE;_7ZIP_LARGE_PAGES;SUPPORT_DEVICE_FILE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AssemblerListingLocation>.\Release\</AssemblerListingLocation>
       <PrecompiledHeaderOutputFile>.\Release\Alone.pch</PrecompiledHeaderOutputFile>
-      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>StdAfx.h</PrecompiledHeaderFile>
       <ObjectFileName>.\Release\</ObjectFileName>
       <ProgramDataBaseFileName>.\Release\</ProgramDataBaseFileName>
@@ -487,6 +487,7 @@
     <ClInclude Include="..\..\..\..\C\BwtSort.h" />
     <ClInclude Include="..\..\..\..\C\CpuArch.h" />
     <ClInclude Include="..\..\..\..\C\Delta.h" />
+    <ClInclude Include="..\..\..\..\C\DllSecur.h" />
     <ClInclude Include="..\..\..\..\C\fast-lzma2\atomic.h" />
     <ClInclude Include="..\..\..\..\C\fast-lzma2\compiler.h" />
     <ClInclude Include="..\..\..\..\C\fast-lzma2\count.h" />
@@ -1009,6 +1010,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
       </PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="..\..\..\..\C\DllSecur.c" />
     <ClCompile Include="..\..\..\..\C\fast-lzma2\dict_buffer.c">
       <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NO_XXHASH;FL2_7ZIP_BUILD;_DEBUG;WIN32;_CONSOLE;_7ZIP_LARGE_PAGES;SUPPORT_DEVICE_FILE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NO_XXHASH;FL2_7ZIP_BUILD;NDEBUG;WIN32;_CONSOLE;_7ZIP_LARGE_PAGES;SUPPORT_DEVICE_FILE;%(PreprocessorDefinitions)</PreprocessorDefinitions>

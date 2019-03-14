@@ -9,7 +9,6 @@
 */
 
 #include <stdio.h>  
-#include "count.h"
 
 #define MAX_READ_BEYOND_DEPTH 2
 
@@ -75,7 +74,7 @@ static size_t RMF_handleRepeat2(RMF_builder* const tbl, const BYTE* const data_b
 
 /* Initialization for the reference algortithm */
 #ifdef RMF_REFERENCE
-static void RMF_initReference(FL2_matchTable* const tbl, const void* const data, size_t const start, size_t const end)
+static void RMF_initReference(FL2_matchTable* const tbl, const void* const data, size_t const end)
 {
     const BYTE* const data_block = (const BYTE*)data;
     ptrdiff_t const block_size = end - 1;
@@ -99,7 +98,6 @@ static void RMF_initReference(FL2_matchTable* const tbl, const void* const data,
     SetNull(end - 1);
     tbl->end_index = (U32)st_index;
     tbl->st_index = ATOMIC_INITIAL_VALUE;
-    (void)start;
 }
 #endif
 
@@ -109,7 +107,7 @@ RMF_bitpackInit
 #else
 RMF_structuredInit
 #endif
-(FL2_matchTable* const tbl, const void* const data, size_t const start, size_t const end)
+(FL2_matchTable* const tbl, const void* const data, size_t const end)
 {
     if (end <= 2) {
         for (size_t i = 0; i < end; ++i)
@@ -119,7 +117,7 @@ RMF_structuredInit
     }
 #ifdef RMF_REFERENCE
     if (tbl->params.use_ref_mf) {
-        RMF_initReference(tbl, data, start, end);
+        RMF_initReference(tbl, data, end);
         return 0;
     }
 #endif
@@ -180,8 +178,8 @@ static void RMF_recurseListsBuffered(RMF_builder* const tbl,
     const BYTE* const data_block,
     size_t const block_start,
     size_t link,
-    BYTE depth,
-    BYTE const max_depth,
+    U32 depth,
+    U32 const max_depth,
     U32 orig_list_count,
     size_t const stack_base)
 {
@@ -212,7 +210,7 @@ static void RMF_recurseListsBuffered(RMF_builder* const tbl,
                 /* Record the actual location of this suffix */
                 tbl->match_buffer[count].from = (U32)link;
                 /* Initialize the next link */
-                tbl->match_buffer[count].next = (U32)(count + 1) | ((U32)depth << 24);
+                tbl->match_buffer[count].next = (U32)(count + 1) | (depth << 24);
                 rpt = 0;
                 prev_link = link;
                 rpt_tail = link;
@@ -227,7 +225,7 @@ static void RMF_recurseListsBuffered(RMF_builder* const tbl,
                     /* Record the actual location of this suffix */
                     tbl->match_buffer[count].from = (U32)link;
                     /* Initialize the next link */
-                    tbl->match_buffer[count].next = (U32)(count + 1) | ((U32)depth << 24);
+                    tbl->match_buffer[count].next = (U32)(count + 1) | (depth << 24);
                     prev_link = link;
                     link = next_link;
                 }
@@ -253,7 +251,7 @@ static void RMF_recurseListsBuffered(RMF_builder* const tbl,
         }
         count = list_count;
         /* Make the last element circular so pre-loading doesn't read past the end. */
-        tbl->match_buffer[count - 1].next = (U32)(count - 1) | ((U32)depth << 24);
+        tbl->match_buffer[count - 1].next = (U32)(count - 1) | (depth << 24);
         U32 overlap = 0;
         if (list_count < (U32)(start + orig_list_count)) {
             overlap = list_count >> MATCH_BUFFER_OVERLAP;
@@ -263,6 +261,7 @@ static void RMF_recurseListsBuffered(RMF_builder* const tbl,
         orig_list_count -= (U32)(list_count - start);
         /* Copy everything back, except the last link which never changes, and any extra overlap */
         count -= overlap + (overlap == 0);
+#ifdef RMF_BITPACK
         if (max_depth > RADIX_MAX_LENGTH) for (size_t index = 0; index < count; ++index) {
             size_t const from = tbl->match_buffer[index].from;
             if (from < block_start)
@@ -272,7 +271,9 @@ static void RMF_recurseListsBuffered(RMF_builder* const tbl,
             size_t const next = tbl->match_buffer[index].next & BUFFER_LINK_MASK;
             SetMatchLinkAndLength(from, tbl->match_buffer[next].from, length);
         }
-        else for (size_t index = 0; index < count; ++index) {
+        else
+#endif
+            for (size_t index = 0; index < count; ++index) {
             size_t const from = tbl->match_buffer[index].from;
             if (from < block_start)
                 return;
@@ -286,7 +287,7 @@ static void RMF_recurseListsBuffered(RMF_builder* const tbl,
             for (size_t src = list_count - overlap; src < list_count; ++src) {
                 tbl->match_buffer[dest].from = tbl->match_buffer[src].from;
                 tbl->match_buffer[dest].src.u32 = MEM_read32(data_src + tbl->match_buffer[src].from);
-                tbl->match_buffer[dest].next = (U32)(dest + 1) | ((U32)depth << 24);
+                tbl->match_buffer[dest].next = (U32)(dest + 1) | (depth << 24);
                 ++dest;
             }
             start = dest;
@@ -306,7 +307,6 @@ static void RMF_recurseListsBound(RMF_builder* const tbl,
     if (list_count < 2)
         return;
 
-    max_depth = MIN(max_depth, RADIX_MAX_LENGTH) & ~1;
     ptrdiff_t link = list_head->head;
     ptrdiff_t const bounded_size = max_depth + MAX_READ_BEYOND_DEPTH;
     ptrdiff_t const bounded_start = block_size - MIN(block_size, bounded_size);
@@ -397,7 +397,7 @@ static void RMF_recurseListsBound(RMF_builder* const tbl,
                 tails_8[radix_8].prev_index = (U32)index;
                 if (prev != RADIX_NULL_LINK) {
                     ++tails_8[radix_8].list_count;
-                    tbl->match_buffer[prev].next = (U32)index | ((U32)depth << 24);
+                    tbl->match_buffer[prev].next = (U32)index | (depth << 24);
                 }
                 else {
                     tails_8[radix_8].list_count = 1;
@@ -422,6 +422,7 @@ static void RMF_recurseListsBound(RMF_builder* const tbl,
 
         U32 length = tbl->match_buffer[index].next >> 24;
         length = MIN(length, (U32)(block_size - from));
+        length = MIN(length, RADIX_MAX_LENGTH);
 
         size_t const next = tbl->match_buffer[index].next & BUFFER_LINK_MASK;
         SetMatchLinkAndLength(from, tbl->match_buffer[next].from, length);
@@ -933,7 +934,8 @@ RMF_structuredBuildTable
 
     unsigned const best = !tbl->params.divide_and_conquer;
     unsigned const max_depth = MIN(tbl->params.depth, STRUCTURED_MAX_LENGTH) & ~1;
-    size_t const bounded_start = block.end - max_depth - MAX_READ_BEYOND_DEPTH;
+    size_t bounded_start = max_depth + MAX_READ_BEYOND_DEPTH;
+    bounded_start = block.end - MIN(block.end, bounded_start);
     ptrdiff_t next_progress = (job == 0) ? 0 : RADIX16_TABLE_SIZE;
     ptrdiff_t(*getNextList)(FL2_matchTable* const tbl)
         = multi_thread ? RMF_getNextList_mt : RMF_getNextList_st;
@@ -964,7 +966,7 @@ RMF_structuredBuildTable
         }
 #endif
         if (list_head.head >= bounded_start) {
-            RMF_recurseListsBound(tbl->builders[job], block.data, block.end, &list_head, (BYTE)max_depth);
+            RMF_recurseListsBound(tbl->builders[job], block.data, block.end, &list_head, max_depth);
             if (list_head.count < 2 || list_head.head < block.start)
                 continue;
         }

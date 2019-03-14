@@ -1,7 +1,7 @@
 #define MY_VER_MAJOR 19
 #define MY_VER_MINOR 00
 #define MY_VER_BUILD 0
-#define MY_VERSION_NUMBERS "19.00 FL2 0.9.10"
+#define MY_VERSION_NUMBERS "19.00 FL2 0.9.11"
 #define MY_VERSION MY_VERSION_NUMBERS
 
 #ifdef MY_CPU_NAME
@@ -15,7 +15,7 @@
 #undef MY_VERSION_COPYRIGHT_DATE
 #define MY_AUTHOR_NAME "Igor Pavlov, Conor McCarthy"
 #define MY_COPYRIGHT_PD "Igor Pavlov : Public domain"
-#define MY_COPYRIGHT_CR "(c) 1999-2018 Igor Pavlov, FL2 (c) 2018 Conor McCarthy"
+#define MY_COPYRIGHT_CR "(c) 1999-2019 Igor Pavlov, FL2 (c) 2019 Conor McCarthy"
 
 #ifdef USE_COPYRIGHT_CR
   #define MY_COPYRIGHT MY_COPYRIGHT_CR

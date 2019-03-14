@@ -846,6 +846,9 @@
     <ClInclude Include="..\..\..\..\C\fast-lzma2\util.h">
       <Filter>C\fast-lzma2</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\..\C\DllSecur.h">
+      <Filter>C</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\UI\Console\BenchCon.cpp">
@@ -1561,6 +1564,9 @@
     </ClCompile>
     <ClCompile Include="..\..\Compress\FastLzma2Register.cpp">
       <Filter>Compress\LZMA</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\C\DllSecur.c">
+      <Filter>C</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
