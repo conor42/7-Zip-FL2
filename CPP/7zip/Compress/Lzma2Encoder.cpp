@@ -143,8 +143,9 @@ static HRESULT TranslateError(size_t res)
 #define CHECK_P(f) if (FL2_isError(f)) return E_INVALIDARG;  /* check and convert error code */
 
 CFastEncoder::FastLzma2::FastLzma2()
+  : fcs(NULL),
+  dict_pos(0)
 {
-  fcs = NULL;
 }
 
 CFastEncoder::FastLzma2::~FastLzma2()
