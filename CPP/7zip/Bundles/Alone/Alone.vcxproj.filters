@@ -804,9 +804,6 @@
     <ClInclude Include="..\..\..\..\C\fast-lzma2\fl2_compress_internal.h">
       <Filter>C\fast-lzma2</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\C\fast-lzma2\fl2_error_private.h">
-      <Filter>C\fast-lzma2</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\..\..\C\fast-lzma2\fl2_errors.h">
       <Filter>C\fast-lzma2</Filter>
     </ClInclude>
@@ -848,6 +845,9 @@
     </ClInclude>
     <ClInclude Include="..\..\..\..\C\DllSecur.h">
       <Filter>C</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\C\fast-lzma2\fast-lzma2.h">
+      <Filter>C\fast-lzma2</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -1535,9 +1535,6 @@
     <ClCompile Include="..\..\..\..\C\fast-lzma2\fl2_compress.c">
       <Filter>C\fast-lzma2</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\C\fast-lzma2\fl2_error_private.c">
-      <Filter>C\fast-lzma2</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\..\C\fast-lzma2\fl2_pool.c">
       <Filter>C\fast-lzma2</Filter>
     </ClCompile>
@@ -1573,10 +1570,5 @@
     <ResourceCompile Include="resource.rc">
       <Filter>Spec</Filter>
     </ResourceCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="..\..\..\..\C\fast-lzma2\lzma_dec_x86_64.asm">
-      <Filter>C\fast-lzma2</Filter>
-    </None>
   </ItemGroup>
 </Project>

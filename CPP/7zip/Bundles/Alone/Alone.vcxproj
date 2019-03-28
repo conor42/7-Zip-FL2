@@ -493,10 +493,10 @@
     <ClInclude Include="..\..\..\..\C\fast-lzma2\count.h" />
     <ClInclude Include="..\..\..\..\C\fast-lzma2\data_block.h" />
     <ClInclude Include="..\..\..\..\C\fast-lzma2\dict_buffer.h" />
+    <ClInclude Include="..\..\..\..\C\fast-lzma2\fast-lzma2.h" />
     <ClInclude Include="..\..\..\..\C\fast-lzma2\fastpos_table.h" />
     <ClInclude Include="..\..\..\..\C\fast-lzma2\fl2_compress_internal.h" />
     <ClInclude Include="..\..\..\..\C\fast-lzma2\fl2_errors.h" />
-    <ClInclude Include="..\..\..\..\C\fast-lzma2\fl2_error_private.h" />
     <ClInclude Include="..\..\..\..\C\fast-lzma2\fl2_internal.h" />
     <ClInclude Include="..\..\..\..\C\fast-lzma2\fl2_pool.h" />
     <ClInclude Include="..\..\..\..\C\fast-lzma2\fl2_threading.h" />
@@ -1020,10 +1020,6 @@
       <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NO_XXHASH;FL2_7ZIP_BUILD;NDEBUG;WIN32;_CONSOLE;_7ZIP_LARGE_PAGES;SUPPORT_DEVICE_FILE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <ClCompile Include="..\..\..\..\C\fast-lzma2\fl2_compress.c">
-      <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NO_XXHASH;FL2_7ZIP_BUILD;_DEBUG;WIN32;_CONSOLE;_7ZIP_LARGE_PAGES;SUPPORT_DEVICE_FILE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NO_XXHASH;FL2_7ZIP_BUILD;NDEBUG;WIN32;_CONSOLE;_7ZIP_LARGE_PAGES;SUPPORT_DEVICE_FILE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\C\fast-lzma2\fl2_error_private.c">
       <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NO_XXHASH;FL2_7ZIP_BUILD;_DEBUG;WIN32;_CONSOLE;_7ZIP_LARGE_PAGES;SUPPORT_DEVICE_FILE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NO_XXHASH;FL2_7ZIP_BUILD;NDEBUG;WIN32;_CONSOLE;_7ZIP_LARGE_PAGES;SUPPORT_DEVICE_FILE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
@@ -1895,9 +1891,6 @@
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="resource.rc" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="..\..\..\..\C\fast-lzma2\lzma_dec_x86_64.asm" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
