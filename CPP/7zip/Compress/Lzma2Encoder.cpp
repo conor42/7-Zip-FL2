@@ -302,7 +302,7 @@ HRESULT CFastEncoder::FastLzma2::End(ISequentialOutStream *outStream, ICompressP
   size_t res = FL2_endStream(fcs, nullptr);
   CHECK_H(WaitAndReport(res, progress));
   while (res) {
-      CHECK_H(WriteBuffers(outStream));
+    CHECK_H(WriteBuffers(outStream));
     res = FL2_endStream(fcs, nullptr);
     CHECK_H(WaitAndReport(res, progress));
   }
