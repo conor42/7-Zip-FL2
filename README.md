@@ -1,19 +1,19 @@
-__7-Zip-FL2__ is a fork of mainline 7-Zip which uses the [Fast LZMA2 Library] as the
-default compressor.
-
+__7-Zip-FL2__ is a fork of mainline 7-Zip which uses the [Fast LZMA2 Library] as
+the default compressor.
 [Fast LZMA2 Library]: https://github.com/conor42/fast-lzma2
 
-### Additional Matchfinder
+Binary releases are avilable on the [release page].
+[release page]: https://github.com/conor42/7-Zip-FL2/releases
 
-7-Zip-FL2 adds a new matchfinder option, -mmf=RMF, provided by the Fast LZMA2 library.
-RMF is the default for LZMA2 in this version. To use the other matchfinders in the
-console version, specify -mmf=HC4 (level 1 - 4) or -mmf=BT4 (level 5+) on the command
-line.
+To use the standard 7-Zip encoder, specify -m0=lzma2 on the command line.
 
-The help file in this release has not been updated with information about RMF.
+The help file in this project has not been updated with information about Fast
+LZMA2. See the document releaseFL2.txt in the releases for information.
 
 ### Status
 
 The command-line version has been subjected to automated testing on sets of files
-chosen at random. The FL2 component has passed heavy fuzz testing. Even so, this
-software has no warranty and both 7-Zip 18.01 and FL2 0.9.0 are beta versions.
+chosen at random. The FL2 component has passed heavy fuzz testing. Even so, no
+warranty or fitness for a particular purpose is expressed or implied. The Fast
+LZMA2 Library is distributed under the licenses found in COPYING and LICENSE in
+the directory C/fast-lzma2.
