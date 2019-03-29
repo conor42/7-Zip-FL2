@@ -1,8 +1,10 @@
 __7-Zip-FL2__ is a fork of mainline 7-Zip which uses the [Fast LZMA2 Library] as
 the default compressor.
+
 [Fast LZMA2 Library]: https://github.com/conor42/fast-lzma2
 
 Binary releases are avilable on the [release page].
+
 [release page]: https://github.com/conor42/7-Zip-FL2/releases
 
 To use the standard 7-Zip encoder, specify -m0=lzma2 on the command line.
